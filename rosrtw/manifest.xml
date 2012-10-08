@@ -1,0 +1,21 @@
+<package>
+  <description brief="rosrtw">
+
+     rosrtw
+
+  </description>
+  <author>Johannes Meyer</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/rosrtw</url>
+
+  <depend package="rosmatlab"/>
+  <depend package="rosbuild"/>
+
+  <export>
+    <rosbuild cmake_directory="${prefix}/cmake"/>
+  </export>
+
+</package>
+
+

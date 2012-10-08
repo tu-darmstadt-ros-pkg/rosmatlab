@@ -1,0 +1,32 @@
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} @PROJECT_SOURCE_DIR@/cmake)
+include(FindMatlab)
+include(MatlabMexMacro)
+
+#link_directories(${MATLAB_BIN})
+#include_directories(${MATLAB_INCLUDE_DIR})
+
+set(rosmatlab_LIBRARY_DIRS ${MATLAB_ROOT}/extern/lib)
+
+macro(add_mex lib)
+	ADD_MEX_FILE(${lib} ${ARGN})
+
+	# Prevent deletion of existing lib of same name
+	set_target_properties(${lib} PROPERTIES CLEAN_DIRECT_OUTPUT 1)
+
+	if(ROSBUILD_init_called)
+		# Attach compile and link flags
+		rosbuild_add_compile_flags(${lib} ${${PROJECT_NAME}_CFLAGS_OTHER})
+		rosbuild_add_link_flags(${lib} ${${PROJECT_NAME}_LDFLAGS_OTHER})
+		# Link lib against dependent libs
+		target_link_libraries(${lib} ${${PROJECT_NAME}_LIBRARIES})
+
+		# Add ROS-wide compile and link flags (usually things like -Wall).  These
+		# are set in rosconfig.cmake.
+		rosbuild_add_compile_flags(${lib} ${ROS_COMPILE_FLAGS})
+		rosbuild_add_link_flags(${lib} ${ROS_LINK_FLAGS})
+
+		# Make sure to do any prebuild work (e.g., msg/srv generation) before
+		# building this target.
+		add_dependencies(${lib} rosbuild_precompile)
+	endif()
+endmacro()

@@ -1,0 +1,20 @@
+<package>
+  <description brief="rosmatlab_examples">
+
+     rosmatlab_examples
+
+  </description>
+  <author>Johannes Meyer</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/rosmatlab_examples</url>
+
+  <depend package="rosmatlab"/>
+  <depend package="roscpp"/>
+  
+  <export>
+    <rosmatlab path="${prefix}/mex"/>
+  </export>
+
+</package>
+

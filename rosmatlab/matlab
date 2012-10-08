@@ -1,0 +1,37 @@
+#!/bin/bash
+
+PRELOAD_LIBS=(
+  /usr/lib/x86_64-linux-gnu/libstdc++.so.6
+#  /usr/lib/libboost_date_time.so
+#  /usr/lib/libboost_filesystem.so
+#  /usr/lib/libboost_graph_parallel.so
+#  /usr/lib/libboost_graph.so
+#  /usr/lib/libboost_iostreams.so
+#  /usr/lib/libboost_math_c99f.so
+#  /usr/lib/libboost_math_c99l.so
+#  /usr/lib/libboost_math_c99.so
+#  /usr/lib/libboost_math_tr1f.so
+#  /usr/lib/libboost_math_tr1l.so
+#  /usr/lib/libboost_math_tr1.so
+#  /usr/lib/libboost_mpi.so
+#  /usr/lib/libboost_program_options.so
+#  /usr/lib/libboost_python.so
+#  /usr/lib/libboost_regex.so
+#  /usr/lib/libboost_serialization.so
+#  /usr/lib/libboost_signals.so
+#  /usr/lib/libboost_system.so
+#  /usr/lib/libboost_thread.so
+#  /usr/lib/libboost_unit_test_framework.so
+#  /usr/lib/libboost_wave.so
+#  /usr/lib/libboost_wserialization.so
+)
+
+for lib in ${PRELOAD_LIBS[@]}; do
+  if [ -f $lib ]; then
+    LD_PRELOAD="$LD_PRELOAD $lib"
+  fi
+done
+export LD_PRELOAD
+
+matlab -r "run `rospack find rosmatlab`/../setup.m" "$@"
+

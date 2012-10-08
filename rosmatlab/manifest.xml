@@ -1,0 +1,24 @@
+<package>
+  <description brief="rosmatlab">
+
+     rosmatlab
+
+  </description>
+  <author>Johannes Meyer</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/rosmatlab</url>
+
+  <!-- depend package="roslang"/ -->
+  <depend package="roscpp"/>
+  <depend package="rosbuild"/>
+
+  <export>
+    <roslang cmake="${prefix}/build/cmake/rosmatlab/rosmatlab.cmake"/>
+    <rosmatlab path="${prefix}/mex"/>
+    <rosbuild cmake_directory="${prefix}/cmake"/>
+  </export>
+
+</package>
+
+

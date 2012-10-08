@@ -1,0 +1,103 @@
+set(COMPUTER GLNXA64)
+set(rosrtw_DIR "@PROJECT_SOURCE_DIR@")
+
+if (ROSBUILD_init_called)
+  rosbuild_invoke_rospack(${PROJECT_NAME} PROJECT DEPENDS1 "depends1")
+  string(REGEX MATCH "pluginlib" USE_PLUGINLIB "${PROJECT_DEPENDS1}")
+endif()
+
+set(rosrtw_SRC
+#  ${rosrtw_DIR}/src/grt.cpp
+#  ${rosrtw_DIR}/src/grt_malloc.cpp
+  ${rosrtw_DIR}/src/model.cpp
+#  ${MATLAB_ROOT}/rtw/c/src/rt_sim.c
+#  ${MATLAB_ROOT}/rtw/c/src/rt_logging_mmi.c
+)
+
+option(EXT_MODE "Swtich external mode on" OFF)
+set(EXT_MODE_TCPIP ON)
+set(rosrtw_EXT_CC_OPTS "-DEXT_MODE -D${COMPUTER}")
+set(rosrtw_EXT_COMMON_SRC
+  ${MATLAB_ROOT}/rtw/c/src/ext_mode/common/ext_svr.c
+  ${MATLAB_ROOT}/rtw/c/src/ext_mode/common/updown.c
+  ${MATLAB_ROOT}/rtw/c/src/ext_mode/common/ext_work.c
+  ${MATLAB_ROOT}/rtw/c/src/ext_mode/common/rtiostream_interface.c
+)
+set(rosrtw_EXT_TCPIP_SRC
+  ${MATLAB_ROOT}/rtw/c/src/rtiostream/rtiostreamtcpip/rtiostream_tcpip.c
+)
+
+function(add_rtw_library MODEL MODEL_DIR)
+  include_directories(${MODEL_DIR})
+  include_directories(${rosrtw_INCLUDE_DIRS})
+
+  if(NOT IS_ABSOLUTE "${MODEL_DIR}")
+    set(MODEL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/${MODEL_DIR}")
+  endif()
+
+  file(READ "${MODEL_DIR}/modelsources.txt" ${MODEL}_SRC_file)
+  string(REGEX REPLACE "[\ \n\r]+" ";" ${MODEL}_SRC_LIST "${${MODEL}_SRC_file}")
+  foreach(_src ${${MODEL}_SRC_LIST} ${MODEL}_capi.cpp rtGetInf.cpp rtGetNaN.cpp rt_nonfinite.cpp)
+    message(STATUS "Searching ${MODEL_DIR}/${_src}")
+    if(EXISTS "${MODEL_DIR}/${_src}")
+      list(APPEND ${MODEL}_SRC "${MODEL_DIR}/${_src}")
+    elseif(EXISTS "${MATLAB_ROOT}/rtw/c/src/${_src}")
+      list(APPEND ${MODEL}_SRC "${MATLAB_ROOT}/rtw/c/src/${_src}")
+    else()
+      message(SEND_ERROR "Source file ${_src} required to build model ${MODEL} not found")
+    endif()
+  endforeach()
+  unset(${MODEL}_SRC_LIST)
+  #message(STATUS "${MODEL} sources: ${${MODEL}_SRC}")
+  
+  file(READ "${MODEL_DIR}/defines.txt" ${MODEL}_DEFINES_file)
+  string(REGEX REPLACE "[\ \n\r]+" ";" ${MODEL}_DEFINES_LIST "${${MODEL}_DEFINES_file}")
+  foreach(_def ${${MODEL}_DEFINES_LIST})
+    if(${_def} STREQUAL "RT_MALLOC")
+      set(USE_RT_MALLOC 1)
+    endif()
+    list(APPEND ${MODEL}_DEFINES "-D${_def}")
+  endforeach()
+  add_definitions(${${MODEL}_DEFINES})
+  #add_definitions(-DMODEL=${MODEL} ${rosrtw_DEFINES})
+  unset(${MODEL}_DEFINES_LIST)
+  #message(STATUS "${MODEL} defintions: ${${MODEL}_DEFINES}")
+  
+  list(APPEND ${MODEL}_SRC ${rosrtw_SRC})
+  if(USE_RT_MALLOC)
+    list(APPEND ${MODEL}_SRC ${rosrtw_DIR}/src/grt_malloc.cpp)
+  else()
+    list(APPEND ${MODEL}_SRC ${rosrtw_DIR}/src/grt.cpp)
+  endif()
+
+  if(EXT_MODE)
+    list(APPEND ${MODEL}_SRC ${rosrtw_EXT_COMMON_SRC})
+    add_definitions(${rosrtw_EXT_CC_OPTS})
+    
+    if(EXT_MODE_TCPIP)
+      list(APPEND ${MODEL}_SRC ${rosrtw_EXT_TCPIP_SRC})
+    endif(EXT_MODE_TCPIP)
+  endif()
+
+  if(DEFINED rosrtw_BUFFER_SIZE)
+    add_definitions(-DDEFAULT_BUFFER_SIZE=${rosrtw_BUFFER_SIZE})
+  endif()
+
+  if(USE_PLUGINLIB)
+    add_definitions(-DUSE_PLUGINLIB)
+  endif(USE_PLUGINLIB)
+  if (ROSBUILD_init_called)
+    rosbuild_add_library(rosrtw_${MODEL} ${${MODEL}_SRC})
+  else()
+    add_library(rosrtw_${MODEL} SHARED ${${MODEL}_SRC})
+  endif()
+  set_target_properties(rosrtw_${MODEL} PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
+
+  if (ROSBUILD_init_called)
+    rosbuild_add_executable(run_${MODEL} ${rosrtw_DIR}/src/main.cpp)
+  else()
+    add_executable(run_${MODEL} ${rosrtw_DIR}/src/main.cpp)
+  endif()
+  target_link_libraries(run_${MODEL} rosrtw_${MODEL})
+  set_target_properties(run_${MODEL} PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)
+endfunction()
