@@ -26,12 +26,44 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //=================================================================================================
 
-#ifndef MATLAB_ROS_INIT_H
-#define MATLAB_ROS_INIT_H
+#ifndef ROSMATLAB_CONVERSION_H
+#define ROSMATLAB_CONVERSION_H
 
-extern bool initialized;
-extern ros::NodeHandle *node_handle;
+#include <introspection/forwards.h>
+#include "matrix.h"
 
-void ros_init();
+namespace rosmatlab {
 
-#endif // MATLAB_ROS_INIT_H
+using namespace cpp_introspection;
+
+class Conversion;
+typedef boost::shared_ptr<Conversion> ConversionPtr;
+
+typedef mxArray *Array;
+
+class Conversion {
+public:
+  Conversion(const MessagePtr &message);
+  virtual ~Conversion();
+
+  Array operator()();
+  virtual Array toMatlab() { return toStruct(); }
+
+  virtual Array toDoubleMatrix();
+  virtual Array toDoubleMatrix(Array target, std::size_t index = 0);
+
+  virtual Array toStruct();
+  virtual Array toStruct(Array target, std::size_t index = 0);
+
+  virtual Array convert(const FieldPtr& field);
+  const MessagePtr& expanded();
+
+protected:
+  Array emptyArray() const;
+  MessagePtr message_;
+  MessagePtr expanded_;
+};
+
+}
+
+#endif // ROSMATLAB_CONVERSION_H

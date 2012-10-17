@@ -1,10 +1,3 @@
-[status, result] = system('rospack find rosmatlab');
-if status ~= 0
-	error('Could not execute rospack to find package rosmatlab.');
-end
-result(result==10) = [];
-addpath([result, '/mex']);
-
 [status, result] = system('rospack plugins --attrib=path rosmatlab');
 if status ~= 0
 	error('Could not execute rospack to find packages that export matlab.');

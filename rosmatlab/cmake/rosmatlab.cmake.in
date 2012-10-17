@@ -5,9 +5,13 @@ include(MatlabMexMacro)
 #link_directories(${MATLAB_BIN})
 #include_directories(${MATLAB_INCLUDE_DIR})
 
+set(rosmatlab_SOURCE_DIR "@PROJECT_SOURCE_DIR@")
 set(rosmatlab_LIBRARY_DIRS ${MATLAB_ROOT}/extern/lib)
 
-macro(add_mex lib)
+find_package(cpp_introspection REQUIRED)
+include_directories(${cpp_introspection_INCLUDE_DIRS})
+
+function(add_mex lib)
 	ADD_MEX_FILE(${lib} ${ARGN})
 
 	# Prevent deletion of existing lib of same name
@@ -29,4 +33,11 @@ macro(add_mex lib)
 		# building this target.
 		add_dependencies(${lib} rosbuild_precompile)
 	endif()
-endmacro()
+endfunction()
+
+function(add_mex_messages package)
+  if(NOT TARGET mex_${package})
+    message(STATUS "Building MEX message library for package ${package}")
+    add_subdirectory("${rosmatlab_SOURCE_DIR}/src/messages" "${CMAKE_BINARY_DIR}/rosmatlab_mex_messages/${package}")
+  endif()
+endfunction()

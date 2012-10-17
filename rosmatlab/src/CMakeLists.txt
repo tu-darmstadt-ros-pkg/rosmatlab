@@ -1,7 +1,9 @@
-add_mex(ros_init ros_init.cpp)
-target_link_libraries(ros_init ${roscpp_LIBRARIES})
+find_package(ROS REQUIRED COMPONENTS roscpp cpp_introspection)
+include_directories(${ROS_INCLUDE_DIRS})
 
-add_mex(ros_time ros_time.cpp)
-target_link_libraries(ros_time ${roscpp_LIBRARIES} ros_init)
+add_library(rosmatlab SHARED init.cpp publisher.cpp subscriber.cpp param.cpp conversion.cpp)
+target_link_libraries(rosmatlab ${ROS_LIBRARIES})
+install(TARGETS rosmatlab DESTINATION lib)
 
-
+find_package(rosmatlab REQUIRED)
+add_subdirectory(mex)

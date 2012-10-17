@@ -11,11 +11,13 @@
 
   <!-- depend package="roslang"/ -->
   <depend package="roscpp"/>
+  <depend package="cpp_introspection"/>
   <depend package="rosbuild"/>
 
   <export>
+    <cpp cflags="-I${prefix}/include"/>
     <roslang cmake="${prefix}/build/cmake/rosmatlab/rosmatlab.cmake"/>
-    <rosmatlab path="${prefix}/mex"/>
+    <rosmatlab path="${prefix}/mex:${prefix}/classes:${prefix}/../install/mex"/>
     <rosbuild cmake_directory="${prefix}/cmake"/>
   </export>
 
