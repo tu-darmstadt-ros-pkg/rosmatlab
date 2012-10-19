@@ -1,10 +1,9 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(rosmatlab)
 
+find_package(Matlab REQUIRED)
 set(${PROJECT_NAME}_INCLUDE_DIRS ${MATLAB_INCLUDE_DIR} ${Boost_INCLUDE_DIRS} include)
 include_directories(${${PROJECT_NAME}_INCLUDE_DIRS})
-
-#configure_file(cmake/rosmatlab.cmake.in ${PROJECT_SOURCE_DIR}/cmake/rosmatlab.cmake @ONLY)
 
 find_package(catkin REQUIRED)
 catkin_project(rosmatlab

@@ -1,12 +1,7 @@
-project(ros_matlab)
+project(rosmatlab)
 cmake_minimum_required(VERSION 2.8.3)
 find_package(catkin REQUIRED)
 catkin_stack()
-
-# Install to workspace if no CMAKE_INSTALL_PREFIX is set and ROS_WORKSPACE variable is defined
-#if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT AND DEFINED ENV{ROS_WORKSPACE})
-#  set(CMAKE_INSTALL_PREFIX "$ENV{ROS_WORKSPACE}/install" CACHE PATH "Install prefix" FORCE)
-#endif()
 
 # Find an installation of Matlab
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)

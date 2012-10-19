@@ -1,6 +1,6 @@
 # - This module looks for Matlab and associated development libraries
 # Defines:
-#  MATLAB_INCLUDE_DIR: include path for mex.h, engine.h
+#  MATLAB_INCLUDE_DIR:      include path for mex.h, engine.h
 #  MATLAB_LIBRARIES:        required libraries: libmex, etc
 #  MATLAB_MEX_LIBRARY:      path to libmex.lib
 #  MATLAB_MX_LIBRARY:       path to libmx.lib
@@ -146,5 +146,3 @@ MARK_AS_ADVANCED(
   MATLAB_MEX_VERSIONFILE
   MATLAB_FOUND
 )
-
-# vim: set ts=2 sw=2 et:
