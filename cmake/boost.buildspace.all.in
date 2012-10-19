@@ -1,0 +1,4 @@
+#!/bin/sh
+export BOOST_INCLUDEDIR=@Boost_INCLUDE_DIRS@
+export BOOST_LIBRARYDIR=@Boost_LIBRARY_DIRS@
+

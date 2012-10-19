@@ -17,7 +17,7 @@
   <export>
     <cpp cflags="-I${prefix}/include"/>
     <roslang cmake="${prefix}/build/cmake/rosmatlab/rosmatlab.cmake"/>
-    <rosmatlab path="${prefix}/mex:${prefix}/classes:${prefix}/../install/mex"/>
+    <rosmatlab path="${prefix}/matlab"/>
     <rosbuild cmake_directory="${prefix}/cmake"/>
   </export>
 

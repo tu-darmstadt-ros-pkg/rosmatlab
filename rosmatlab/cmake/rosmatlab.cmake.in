@@ -1,4 +1,4 @@
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} @PROJECT_SOURCE_DIR@/cmake)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} @ros_matlab_SOURCE_DIR@/cmake)
 include(FindMatlab)
 include(MatlabMexMacro)
 
@@ -7,12 +7,17 @@ include(MatlabMexMacro)
 
 set(rosmatlab_SOURCE_DIR "@PROJECT_SOURCE_DIR@")
 set(rosmatlab_LIBRARY_DIRS ${MATLAB_ROOT}/extern/lib)
+set(PROJECT_MATLAB_INSTALL_DESTINATION matlab)
 
 find_package(cpp_introspection REQUIRED)
 include_directories(${cpp_introspection_INCLUDE_DIRS})
 
+include(CMakeParseArguments)
 function(add_mex lib)
-	ADD_MEX_FILE(${lib} ${ARGN})
+  cmake_parse_arguments(${lib} "" "OUTPUT_NAME;PACKAGE" "SOURCES" ${ARGN})
+  set(${lib}_SOURCES ${${lib}_SOURCES} ${${lib}_UNPARSED_ARGUMENTS})
+
+  ADD_MEX_FILE(${lib} ${${lib}_SOURCES})
 
 	# Prevent deletion of existing lib of same name
 	set_target_properties(${lib} PROPERTIES CLEAN_DIRECT_OUTPUT 1)
@@ -33,6 +38,12 @@ function(add_mex lib)
 		# building this target.
 		add_dependencies(${lib} rosbuild_precompile)
 	endif()
+
+  if(DEFINED ${lib}_OUTPUT_NAME)
+    set_target_properties(${lib} PROPERTIES OUTPUT_NAME "${${lib}_OUTPUT_NAME}")
+  endif()
+
+  install(TARGETS ${lib} DESTINATION ${PROJECT_MATLAB_INSTALL_DESTINATION}/${${lib}_PACKAGE})
 endfunction()
 
 function(add_mex_messages package)

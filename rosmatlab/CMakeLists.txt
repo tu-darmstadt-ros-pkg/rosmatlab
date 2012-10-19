@@ -1,9 +1,5 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 2.8.3)
 project(rosmatlab)
-
-include(cmake/FindMatlab.cmake)
-find_package(Matlab REQUIRED)
-find_package(Boost REQUIRED)
 
 set(${PROJECT_NAME}_INCLUDE_DIRS ${MATLAB_INCLUDE_DIR} ${Boost_INCLUDE_DIRS} include)
 include_directories(${${PROJECT_NAME}_INCLUDE_DIRS})
@@ -17,11 +13,12 @@ catkin_project(rosmatlab
   DEPENDS cpp_introspection roscpp
   CFG_EXTRAS rosmatlab.cmake
 )
+include(${CMAKE_BINARY_DIR}/cmake/${PROJECT_NAME}/rosmatlab.cmake)
 
-#set the default path for built executables to the "bin" directory
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)
-#set the default path for built libraries to the "lib" directory
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
-
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_BINARY_DIR}/cmake/${PROJECT_NAME})
 add_subdirectory(src)
+
+configure_file(matlab.in matlab @ONLY)
+install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/matlab DESTINATION bin)
+configure_file(setup.m.in setup.m @ONLY)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/setup.m DESTINATION share/${PROJECT_NAME})
+install(DIRECTORY matlab/ DESTINATION ${PROJECT_MATLAB_INSTALL_DESTINATION})

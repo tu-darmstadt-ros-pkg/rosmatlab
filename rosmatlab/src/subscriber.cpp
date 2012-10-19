@@ -47,7 +47,7 @@ public:
 
   VoidConstPtr deserialize(const ros::SubscriptionCallbackHelperDeserializeParams&);
   void call(ros::SubscriptionCallbackHelperCallParams& params);
-  const std::type_info& getTypeInfo() { return subscriber_->message_->getTypeId(); }
+  const std::type_info& getTypeInfo() { return subscriber_->introspection_->getTypeId(); }
   bool isConst() { return false; }
 
 private:
@@ -83,61 +83,71 @@ bool Subscriber::subscribe(int nrhs, const mxArray *prhs[]) {
   options_.datatype = getString(prhs[1]);
   if (nrhs >= 3 && mxIsDouble(prhs[2])) options_.queue_size = *mxGetPr(prhs[2]);
 
-  message_ = cpp_introspection::messageByDataType(options_.datatype);
-  if (!message_) throw Exception("ros.Subscriber: unknown datatype '" + options_.datatype + "'");
-  options_.md5sum = message_->getMD5Sum();
+  introspection_ = cpp_introspection::messageByDataType(options_.datatype);
+  if (!introspection_) throw Exception("Subscriber: unknown datatype '" + options_.datatype + "'");
+  options_.md5sum = introspection_->getMD5Sum();
   options_.helper.reset(new SubscriptionCallbackHelper(this));
 
   *this = node_handle_.subscribe(options_);
   return *this;
 }
 
-VoidConstPtr Subscriber::poll(int nrhs, const mxArray *prhs[])
+mxArray *Subscriber::poll(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
   ros::WallDuration timeout = timeout_;
   if (nrhs && mxIsDouble(*prhs) && mxGetPr(*prhs)) { timeout.fromSec(*mxGetPr(*prhs++)); nrhs--; }
   callback_queue_.callOne(timeout);
-  VoidConstPtr copy = msg_;
-  msg_.reset();
-  return copy;
+
+  last_event_.reset();
+  if (!new_event_) {
+    plhs[0] = mxCreateStructMatrix(0,0,0,0);
+    return plhs[0];
+  }
+
+  plhs[0] = Conversion(introspect(new_event_->getConstMessage())).toMatlab();
+  last_event_.swap(new_event_);
+  return plhs[0];
 }
 
-mxArray *Subscriber::poll(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
+mxArray *Subscriber::getConnectionHeader()
 {
-  VoidConstPtr msg = poll(nrhs, prhs);
-  mxArray *result = 0;
+  mxArray *header = mxCreateStructMatrix(1, 1, 0, 0);
+  if (!last_event_) return header;
 
-  if (msg)
-    result = Conversion(introspect(msg)).toMatlab();
-  else
-    result = mxCreateStructMatrix(0,0,0,0);
+  for(ros::M_string::iterator it = last_event_->getConnectionHeader().begin(); it != last_event_->getConnectionHeader().end(); ++it) {
+    mxAddField(header, it->first.c_str());
+    mxSetField(header, 0, it->first.c_str(), mxCreateString(it->second.c_str()));
+  }
 
-  if (nlhs > 0) plhs[0] = result;
-  return result;
+  return header;
+}
+
+mxArray *Subscriber::getReceiptTime()
+{
+  mxArray *receiptTime = mxCreateDoubleScalar(0);
+  if (!last_event_) return receiptTime;
+  *mxGetPr(receiptTime) = last_event_->getReceiptTime().toSec();
+  return receiptTime;
 }
 
 MessagePtr Subscriber::introspect(const VoidConstPtr& msg) {
-  if (!message_ || !msg) return message_;
-  return message_->introspect(msg.get());
+  if (!introspection_ || !msg) return MessagePtr();
+  return introspection_->introspect(msg.get());
 }
 
 void Subscriber::callback(const ros::MessageEvent<void>& event)
 {
-  if (msg_) {
+  if (new_event_) {
     ROS_WARN_NAMED("rosmatlab", "missed a %s message on topic %s, polling is too slow...", options_.datatype.c_str(), options_.topic.c_str());
     return;
   }
-  msg_ = event.getMessage();
-}
-
-ros::CallbackQueueInterface* Subscriber::getCallbackQueue() {
-  return &callback_queue_;
+  new_event_.reset(new MessageEvent(event));
 }
 
 VoidConstPtr SubscriptionCallbackHelper::deserialize(const ros::SubscriptionCallbackHelperDeserializeParams& params)
 {
   ros::serialization::IStream stream(params.buffer, params.length);
-  VoidPtr msg = subscriber_->message_->deserialize(stream);
+  VoidPtr msg = subscriber_->introspection_->deserialize(stream);
   if (!msg) ROS_WARN_NAMED("rosmatlab", "deserialization of a message of type %s failed", subscriber_->options_.datatype.c_str());
 
   // TODO: setConnectionHeader
@@ -146,7 +156,7 @@ VoidConstPtr SubscriptionCallbackHelper::deserialize(const ros::SubscriptionCall
 
 void SubscriptionCallbackHelper::call(ros::SubscriptionCallbackHelperCallParams& params)
 {
-  ros::MessageEvent<void> event(params.event, boost::bind(&cpp_introspection::Message::createInstance, subscriber_->message_));
+  ros::MessageEvent<void> event(params.event, boost::bind(&cpp_introspection::Message::createInstance, subscriber_->introspection_));
   subscriber_->callback(event);
 }
 

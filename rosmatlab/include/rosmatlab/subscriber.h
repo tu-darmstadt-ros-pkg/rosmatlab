@@ -50,25 +50,24 @@ public:
 
   using ros::Subscriber::operator=;
   bool subscribe(int nrhs, const mxArray *prhs[]);
-
-  ros::CallbackQueueInterface* getCallbackQueue();
-
-  ros::VoidConstPtr poll(int nrhs, const mxArray *prhs[]);
   mxArray *poll(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
-
-  MessagePtr introspect(const VoidConstPtr& msg);
+  mxArray *getConnectionHeader();
+  mxArray *getReceiptTime();
 
 private:
   friend class SubscriptionCallbackHelper;
-  void callback(const ros::MessageEvent<void>& event);
+  typedef ros::MessageEvent<void> MessageEvent;
+  void callback(const MessageEvent& event);
+  MessagePtr introspect(const VoidConstPtr& msg);
 
 private:
   ros::NodeHandle node_handle_;
   ros::CallbackQueue callback_queue_;
   ros::WallDuration timeout_;
 
-  MessagePtr message_;
-  VoidConstPtr msg_;
+  MessagePtr introspection_;
+  boost::shared_ptr<MessageEvent> new_event_;
+  boost::shared_ptr<MessageEvent> last_event_;
   ros::SubscribeOptions options_;
 };
 

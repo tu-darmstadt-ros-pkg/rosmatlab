@@ -36,7 +36,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
                   int nrhs, const mxArray *prhs[] )
 {
   if (nrhs < 1) {
-    mexErrMsgTxt("ros_subscriber: At least 1 input argument is required");
+    throw Exception("At least 1 input argument is required");
   }
 
   try {
@@ -48,7 +48,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     // construction
     if (method == "create") {
       delete subscriber;
-      mexPrintf("ros_subscriber: Creating new subscriber object\n");
+      mexPrintf("[rosmatlab] Creating new Subscriber object\n");
       subscriber = new Subscriber(nrhs, prhs);
       plhs[0] = subscriber->handle();
       return;
@@ -56,13 +56,13 @@ void mexFunction( int nlhs, mxArray *plhs[],
 
     // destruction
     if (method == "delete") {
-      mexPrintf("ros_subscriber: Deleting subscriber object\n");
+      mexPrintf("[rosmatlab] Deleting Subscriber object\n");
       delete subscriber;
       return;
     }
 
     if (!subscriber) {
-      throw Exception("ros_subscriber: subscriber instance not found");
+      throw Exception("Subscriber instance not found");
     }
 
     // subscribe()
@@ -78,19 +78,31 @@ void mexFunction( int nlhs, mxArray *plhs[],
     }
 
     // getTopic()
-    if (method == "topic") {
+    if (method == "getTopic") {
       plhs[0] = mxCreateString(subscriber->getTopic().c_str());
       return;
     }
 
     // getNumPublishers()
-    if (method == "numpublishers") {
+    if (method == "getNumPublishers") {
       plhs[0] = mxCreateDoubleScalar(subscriber->getNumPublishers());
       return;
     }
 
+    // getConnectionHeader()
+    if (method == "getConnectionHeader") {
+      plhs[0] = subscriber->getConnectionHeader();
+      return;
+    }
+
+    // getReceiptTime()
+    if (method == "getReceiptTime") {
+      plhs[0] = subscriber->getReceiptTime();
+      return;
+    }
+
     // unknown method exception
-    throw Exception("ros_subscriber: unknown method '" + method + "'");
+    throw Exception("unknown method '" + method + "'");
 
   } catch(Exception &e) {
     mexErrMsgTxt(e.what());

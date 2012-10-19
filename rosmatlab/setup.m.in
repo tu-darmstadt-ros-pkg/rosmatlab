@@ -1,0 +1,27 @@
+function setup()
+    % Add the installed mex directory to the path
+    addpath('@CMAKE_INSTALL_PREFIX@/matlab');
+
+    % Find packages that export a path for Matlab
+    [status, result] = system('rospack plugins --attrib=path rosmatlab');
+    if status ~= 0
+      error('Could not execute rospack to find packages that export matlab.');
+    end
+
+    deal_cell = @(cell) cell{:};
+    lines = regexp(result, '\n', 'split');
+    for i = 1:length(lines)
+        if isempty(lines{i}); continue; end
+        [package, path] = deal_cell(regexp(lines{i}, ' ', 'split'));
+        paths = regexp(path, ':', 'split');
+
+        for p = 1:length(paths)
+            if(exist(paths{p}, 'dir'))
+                disp(['[rosmatlab] Package ' package ' exports ' paths{p}]);
+                addpath(paths{p});
+            else
+                warning(['[rosmatlab] Package ' package ' exports ' paths{p} ', but this directory does not exist!']);
+            end
+        end
+    end
+end
