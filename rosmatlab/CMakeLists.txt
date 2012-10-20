@@ -21,3 +21,5 @@ install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/matlab DESTINATION bin)
 configure_file(setup.m.in setup.m @ONLY)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/setup.m DESTINATION share/${PROJECT_NAME})
 install(DIRECTORY matlab/ DESTINATION ${PROJECT_MATLAB_INSTALL_DESTINATION})
+install(DIRECTORY include/ DESTINATION include)
+
