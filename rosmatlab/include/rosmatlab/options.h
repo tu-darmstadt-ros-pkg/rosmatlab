@@ -26,22 +26,46 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //=================================================================================================
 
-#ifndef ROSMATLAB_STRING_H
-#define ROSMATLAB_STRING_H
+#ifndef ROSMATLAB_OPTIONS_H
+#define ROSMATLAB_OPTIONS_H
 
 #include <matrix.h>
 #include <string>
+#include <map>
 
 namespace rosmatlab {
+class Options {
+public:
 
-  std::string getString(const mxArray *value) {
-    if (!mxIsChar(value)) return std::string();
-    std::size_t len = mxGetNumberOfElements(value);
-    char temp[len + 1];
-    mxGetString(value, temp, sizeof(temp));
-    return std::string(temp);
-  }
+  static bool isString(const mxArray *value);
+  static std::string getString(const mxArray *value);
+
+  static bool isDoubleScalar(const mxArray *value);
+  static double getDoubleScalar(const mxArray *value);
+
+  static bool isLogicalScalar(const mxArray *value);
+  static bool getLogicalScalar(const mxArray *value);
+
+public:
+  Options(int nrhs, const mxArray *prhs[]);
+  virtual ~Options();
+
+  bool hasKey(const std::string& key) const;
+
+  const std::string& getString(const std::string& key, const std::string& default_value = std::string());
+  double getDouble(const std::string& key, double default_value = 0);
+  bool getBool(const std::string& key, bool default_value = false);
+
+  void warnUnused();
+
+private:
+  std::map<std::string,std::string> strings_;
+  std::map<std::string,double> doubles_;
+  std::map<std::string,bool> logicals_;
+
+  std::map<std::string,bool> used_;
+};
 
 } // namespace rosmatlab
 
-#endif // ROSMATLAB_STRING_H
+#endif // ROSMATLAB_OPTIONS_H

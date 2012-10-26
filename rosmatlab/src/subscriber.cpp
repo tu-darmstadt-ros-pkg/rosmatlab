@@ -28,7 +28,7 @@
 
 #include <rosmatlab/subscriber.h>
 #include <rosmatlab/exception.h>
-#include <rosmatlab/string.h>
+#include <rosmatlab/options.h>
 #include <rosmatlab/conversion.h>
 
 #include <introspection/message.h>
@@ -76,12 +76,31 @@ Subscriber::~Subscriber() {
 
 bool Subscriber::subscribe(int nrhs, const mxArray *prhs[]) {
   if (nrhs < 2) {
-    throw Exception("Subscriber::subscribe needs at least two arguments");
+    throw Exception("Subscriber: subscribe needs at least two arguments");
   }
 
-  options_.topic = getString(prhs[0]);
-  options_.datatype = getString(prhs[1]);
-  if (nrhs >= 3 && mxIsDouble(prhs[2])) options_.queue_size = *mxGetPr(prhs[2]);
+  options_ = ros::SubscribeOptions();
+  for(int i = 0; i < nrhs; i++) {
+    switch(i) {
+      case 0:
+        if (!Options::isString(prhs[i])) throw Exception("Subscriber: need a topic as 1st argument");
+        options_.topic = Options::getString(prhs[i]);
+        break;
+
+      case 1:
+        if (!Options::isString(prhs[i])) throw Exception("Subscriber: need a datatype as 2nd argument");
+        options_.datatype = Options::getString(prhs[i]);
+        break;
+
+      case 2:
+        if (!Options::isDoubleScalar(prhs[i])) throw Exception("Subscriber: need a queue size as 3rd argument");
+        options_.queue_size = Options::getDoubleScalar(prhs[i]);
+        break;
+
+      default:
+        throw Exception("Subscriber: too many arguments");
+    }
+  }
 
   introspection_ = cpp_introspection::messageByDataType(options_.datatype);
   if (!introspection_) throw Exception("Subscriber: unknown datatype '" + options_.datatype + "'");
@@ -109,7 +128,7 @@ mxArray *Subscriber::poll(int nlhs, mxArray *plhs[], int nrhs, const mxArray *pr
   return plhs[0];
 }
 
-mxArray *Subscriber::getConnectionHeader()
+mxArray *Subscriber::getConnectionHeader() const
 {
   mxArray *header = mxCreateStructMatrix(1, 1, 0, 0);
   if (!last_event_) return header;
@@ -122,12 +141,22 @@ mxArray *Subscriber::getConnectionHeader()
   return header;
 }
 
-mxArray *Subscriber::getReceiptTime()
+mxArray *Subscriber::getReceiptTime() const
 {
   mxArray *receiptTime = mxCreateDoubleScalar(0);
   if (!last_event_) return receiptTime;
   *mxGetPr(receiptTime) = last_event_->getReceiptTime().toSec();
   return receiptTime;
+}
+
+mxArray *Subscriber::getTopic() const
+{
+  return mxCreateString(ros::Subscriber::getTopic().c_str());
+}
+
+mxArray *Subscriber::getNumPublishers() const
+{
+  return mxCreateDoubleScalar(ros::Subscriber::getNumPublishers());
 }
 
 MessagePtr Subscriber::introspect(const VoidConstPtr& msg) {

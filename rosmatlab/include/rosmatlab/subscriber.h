@@ -51,8 +51,12 @@ public:
   using ros::Subscriber::operator=;
   bool subscribe(int nrhs, const mxArray *prhs[]);
   mxArray *poll(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
-  mxArray *getConnectionHeader();
-  mxArray *getReceiptTime();
+
+  mxArray *getConnectionHeader() const;
+  mxArray *getReceiptTime() const;
+
+  mxArray *getTopic() const;
+  mxArray *getNumPublishers() const;
 
 private:
   friend class SubscriptionCallbackHelper;
@@ -62,13 +66,13 @@ private:
 
 private:
   ros::NodeHandle node_handle_;
+  ros::SubscribeOptions options_;
   ros::CallbackQueue callback_queue_;
   ros::WallDuration timeout_;
 
   MessagePtr introspection_;
   boost::shared_ptr<MessageEvent> new_event_;
   boost::shared_ptr<MessageEvent> last_event_;
-  ros::SubscribeOptions options_;
 };
 
 } // namespace rosmatlab

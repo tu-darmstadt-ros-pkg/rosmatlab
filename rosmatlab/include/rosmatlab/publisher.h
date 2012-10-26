@@ -26,20 +26,44 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //=================================================================================================
 
-#ifndef PUBLISHER_H
-#define PUBLISHER_H
+#ifndef ROSMATLAB_PUBLISHER_H
+#define ROSMATLAB_PUBLISHER_H
 
 #include <rosmatlab/object.h>
+#include <ros/ros.h>
+#include <ros/callback_queue.h>
+
+#include <introspection/forwards.h>
 
 namespace rosmatlab {
 
-class Publisher : public Object<Publisher>
+using cpp_introspection::VoidPtr;
+using cpp_introspection::VoidConstPtr;
+using cpp_introspection::MessagePtr;
+
+class Publisher : public ros::Publisher, public Object<Publisher>
 {
 public:
   Publisher();
   Publisher(int nrhs, const mxArray *prhs[]);
+  ~Publisher();
+
+  using ros::Publisher::operator=;
+  bool advertise(int nrhs, const mxArray *prhs[]);
+
+  void publish(int nrhs, const mxArray *prhs[]);
+
+  mxArray *getTopic() const;
+  mxArray *getNumSubscribers() const;
+  mxArray *isLatched() const;
+
+private:
+  ros::NodeHandle node_handle_;
+  ros::AdvertiseOptions options_;
+
+  MessagePtr introspection_;
 };
 
 } // namespace rosmatlab
 
-#endif // PUBLISHER_H
+#endif // ROSMATLAB_PUBLISHER_H

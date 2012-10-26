@@ -28,7 +28,7 @@
 
 #include <mex.h>
 #include <rosmatlab/ros.h>
-#include <rosmatlab/string.h>
+#include <rosmatlab/options.h>
 
 using namespace rosmatlab;
 
@@ -43,7 +43,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     init();
     Subscriber *subscriber = getObject<Subscriber>(*prhs++); nrhs--;
     std::string method;
-    if (nrhs) { method = getString(*prhs++); nrhs--; }
+    if (nrhs) { method = Options::getString(*prhs++); nrhs--; }
 
     // construction
     if (method == "create") {
@@ -79,13 +79,13 @@ void mexFunction( int nlhs, mxArray *plhs[],
 
     // getTopic()
     if (method == "getTopic") {
-      plhs[0] = mxCreateString(subscriber->getTopic().c_str());
+      plhs[0] = subscriber->getTopic();
       return;
     }
 
     // getNumPublishers()
     if (method == "getNumPublishers") {
-      plhs[0] = mxCreateDoubleScalar(subscriber->getNumPublishers());
+      plhs[0] = subscriber->getNumPublishers();
       return;
     }
 

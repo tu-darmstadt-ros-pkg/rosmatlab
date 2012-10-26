@@ -27,6 +27,8 @@
 //=================================================================================================
 
 #include <rosmatlab/conversion.h>
+#include <rosmatlab/exception.h>
+
 #include <introspection/message.h>
 #include <introspection/type.h>
 
@@ -43,40 +45,46 @@ namespace rosmatlab {
 Conversion::Conversion(const MessagePtr &message) : message_(message) {}
 Conversion::~Conversion() {}
 
-Array Conversion::operator()() {
-  return toMatlab();
-}
-
 Array Conversion::toDoubleMatrix() {
-  Array target = mxCreateDoubleMatrix(1, expanded()->size(), mxREAL);
-  return toDoubleMatrix(target);
+  return toDoubleMatrix(0);
 }
 
-Array Conversion::toDoubleMatrix(Array target, std::size_t index) {
+Array Conversion::toDoubleMatrix(Array target, std::size_t n) {
+  std::size_t m = 0;
+  if (!target) target = mxCreateDoubleMatrix(expanded()->size(), n + 1, mxREAL);
+
+  bool do_realloc = false;
+  if (mxGetM(target) < expanded()->size()) { mxSetM(target, expanded()->size()); do_realloc = true; }
+  if (mxGetN(target) < n + 1) { mxSetN(target, n + 1); do_realloc = true; }
+  if (do_realloc)
+  {
+    mxSetData(target, mxRealloc(mxGetData(target), mxGetN(target) * mxGetN(target) * sizeof(double)));
+  }
+
+  double *data = mxGetPr(target) + mxGetM(target) * n;
   for(Message::const_iterator field = expanded()->begin(); field != expanded()->end(); ++field) {
     if (!(*field)->getType()->isNumeric()) continue;
-    mxGetPr(target)[index++] = (*field)->getType()->as_double((*field)->get());
+    *data++ = (*field)->getType()->as_double((*field)->get());
   }
-  mxSetN(target, index);
   return target;
 }
 
 Array Conversion::toStruct() {
-  Array target = mxCreateStructMatrix(1, 1, message_->getFieldNames().size(), const_cast<const char **>(message_->getFieldNames().data()));
-  return toStruct(target);
+  return toStruct(0);
 }
 
 Array Conversion::toStruct(Array target, std::size_t index) {
 //  mexPrintf("Constructing message %s (%s)...\n", message_->getName(), message_->getDataType());
+  if (!target) target = mxCreateStructMatrix(1, index + 1, message_->getFieldNames().size(), const_cast<const char **>(message_->getFieldNames().data()));
 
   for(Message::const_iterator field = message_->begin(); field != message_->end(); ++field) {
     const char *field_name = (*field)->getName();
 
     if ((*field)->isMessage()) {
-      MessagePtr field_message = (*field)->expand();
+      MessagePtr field_message = messageByDataType((*field)->getDataType());
 
       if (field_message) {
-        Array child = mxCreateStructMatrix((*field)->size(), 1, field_message->getFieldNames().size(), const_cast<const char **>(field_message->getFieldNames().data()));
+        Array child = mxCreateStructMatrix(1, (*field)->size(), field_message->getFieldNames().size(), const_cast<const char **>(field_message->getFieldNames().data()));
 
         // iterate over array
         for(std::size_t j = 0; j < (*field)->size(); j++) {
@@ -93,54 +101,101 @@ Array Conversion::toStruct(Array target, std::size_t index) {
 
       } else {
         const char **field_names = { 0 };
-        mxSetField(target, index, field_name, mxCreateStructMatrix((*field)->size(), 1, 0, field_names));
+        mxSetField(target, index, field_name, mxCreateStructMatrix(1, (*field)->size(), 0, field_names));
       }
 
     } else {
-      mxSetField(target, index, field_name, convert(*field));
+      mxSetField(target, index, field_name, convertToMatlab(*field));
     }
   }
 
   return target;
 }
 
-Array Conversion::convert(const FieldPtr& field) {
+MessagePtr Conversion::fromMatlab(ConstArray source, std::size_t index)
+{
+  MessagePtr message = message_->introspect(message_->createInstance());
+  fromMatlab(message, source, index);
+  return message;
+}
+
+void Conversion::fromMatlab(const MessagePtr& message, ConstArray source, std::size_t index)
+{
+  if (mxIsStruct(source)) {
+    fromStruct(message, source, index);
+    return;
+  }
+
+  if (mxIsDouble(source)) {
+    fromDoubleMatrix(message, source, index);
+    return;
+  }
+
+  throw Exception("Cannot parse a message of class " + std::string(mxGetClassName(source)) + " as ROS message");
+}
+
+void Conversion::fromDoubleMatrix(const MessagePtr& message, ConstArray source, std::size_t n)
+{
+  if (!mxIsDouble(source)) return;
+
+  const double *begin = 0;
+  const double *end = 0;
+
+  if (mxGetM(source) == 1 && n == 0) {
+    begin = mxGetPr(source);
+    end   = begin + mxGetN(source);
+  } else {
+    if (n >= mxGetN(source)) throw Exception("Column index out of bounds");
+    begin = mxGetPr(source) + mxGetM(source) * n;
+    end   = mxGetPr(source) + mxGetM(source) * (n + 1);
+  }
+
+  fromDoubleMatrix(message, begin, end);
+}
+
+void Conversion::fromDoubleMatrix(const MessagePtr &message, const double *begin, const double *end)
+{
+  for(Message::const_iterator field = message->begin(); field != message->end(); ++field) {
+    begin = convertFromDouble(*field, begin, end);
+  }
+  if (begin != end) throw Exception("Failed to parse a message of type " + std::string(message->getDataType()) + ": vector is too long");
+}
+
+void Conversion::fromStruct(const MessagePtr &message, ConstArray source, std::size_t index)
+{
+  if (!mxIsStruct(source)) return;
+
+  for(Message::const_iterator field = message->begin(); field != message->end(); ++field) {
+    ConstArray field_source = mxGetField(source, index, (*field)->getName());
+    if (!field_source) continue;
+    convertFromMatlab(*field, field_source);
+  }
+}
+
+Array Conversion::convertToMatlab(const FieldPtr& field) {
   Array target = 0;
+  TypePtr field_type = field->getType();
 
 //  mexPrintf("Constructing field %s (%s)...\n", field->getName(), field->getDataType());
   try {
-    if (field->getType() == type("string")) {
+    if (field_type->isString()) {
       if (field->isArray()) {
-        target = mxCreateCellMatrix(field->size(), 1);
+        target = mxCreateCellMatrix(1, field->size());
         for(std::size_t i = 0; i < field->size(); i++) {
-          mxSetCell(target, i, mxCreateString(boost::any_cast<std::string>(field->get(i)).c_str()));
+          mxSetCell(target, i, mxCreateString(field_type->as_string(field->get(i)).c_str()));
         }
       } else {
-        target = mxCreateString(boost::any_cast<std::string>(field->get()).c_str());
+        target = mxCreateString(field_type->as_string(field->get()).c_str());
       }
       return target;
     }
 
 //    mexPrintf("Constructing double vector with dimension %u for field %s\n", unsigned(field->size()), field->getName());
-    target = mxCreateDoubleMatrix(field->size(), 1, mxREAL);
+    target = mxCreateDoubleMatrix(1, field->size(), mxREAL);
     double *x = mxGetPr(target);
 
-    if (field->getType() == type("time")) {
-      for(std::size_t i = 0; i < field->size(); i++) {
-        x[i] = boost::any_cast<ros::Time>(field->get(i)).toSec();
-      }
-      return target;
-    }
-
-    if (field->getType() == type("duration")) {
-      for(std::size_t i = 0; i < field->size(); i++) {
-        x[i] = boost::any_cast<ros::Time>(field->get(i)).toSec();
-      }
-      return target;
-    }
-
     for(std::size_t i = 0; i < field->size(); i++) {
-      x[i] = field->getType()->as<double>(field->get(i));
+      x[i] = field_type->as_double(field->get(i));
     }
 
   } catch(boost::bad_any_cast &e) {
@@ -149,6 +204,100 @@ Array Conversion::convert(const FieldPtr& field) {
   }
 
   return target;
+}
+
+void Conversion::convertFromMatlab(const FieldPtr &field, ConstArray source) {
+  const char *field_name = field->getName();
+  std::size_t field_size = mxIsChar(source) ? 1 : mxGetNumberOfElements(source);
+
+  // check size
+  if (field->isArray() && field->size() != field_size) throw Exception("Failed to parse field " + std::string(field_name) + ": Array field must have length " + boost::lexical_cast<std::string>(field->size()));
+  if (!field->isContainer() && field_size != 1) throw Exception("Failed to parse field " + std::string(field_name) + ": Scalar field must have exactly length 1");
+  if (field->isVector()) field->resize(field_size);
+
+  // parse ROS message
+  if (field->isMessage()) {
+    MessagePtr field_message = messageByDataType(field->getDataType());
+    if (!field_message) throw Exception("Failed to parse field " + std::string(field_name) + ": unknown datatype " + field->getDataType());
+    Conversion child_conversion(field_message);
+
+    // iterate over array
+    for(std::size_t i = 0; i < field_size; i++) {
+//     mexPrintf("Expanding field %s[%u] (%s)... %u\n", field->getName(), i, field->getDataType());
+      MessagePtr expanded = field->expand(i);
+      if (expanded) {
+        child_conversion.fromMatlab(expanded, source, i);
+      } else {
+        mexPrintf("Error during expansion of %s[%u] (%s)... %u\n", field->getName(), i, field->getDataType());
+      }
+    }
+
+    return;
+  }
+
+  // parse string
+  if (field->getType()->isString()) {
+    std::vector<char> buffer;
+
+    for(std::size_t i = 0; i < field->size(); i++) {
+      if (mxIsCell(source) && mxIsChar(mxGetCell(source, i))) {
+        buffer.resize(mxGetNumberOfElements(mxGetCell(source, i)) + 1);
+        mxGetString(mxGetCell(source, i), buffer.data(), buffer.size());
+        field->set(std::string(buffer.data(), buffer.size() - 1), i);
+
+      } else if (mxIsChar(source) && i == 0) {
+        buffer.resize(mxGetN(source) + 1);
+        mxGetString(source, buffer.data(), buffer.size());
+        field->set(std::string(buffer.data(), buffer.size() - 1));
+
+      } else {
+        throw Exception("Failed to parse string field " + std::string(field->getDataType()) + " " + std::string(field->getName()) + ": Array must be a cell string or a character array");
+      }
+    }
+
+    return;
+  }
+
+  // For all other types source must be a double array...
+  if (!mxIsDouble(source)) throw Exception("Failed to parse field " + std::string(field->getDataType()) + " " + std::string(field->getName()) + ": Array must be a double array");
+  const double *x = mxGetPr(source);
+  convertFromDouble(field, x, x + mxGetN(source));
+}
+
+const double *Conversion::convertFromDouble(const FieldPtr& field, const double *begin, const double *end)
+{
+  const double *data = begin;
+
+  if (field->isVector() && end >= begin) {
+    // eat up all the input (roar!!!)
+    field->resize(end - begin);
+  }
+
+  // check size
+  if (end - begin < field->size()) {
+    throw Exception("Failed to parse field " + std::string(field->getName()) + ": vector is too short");
+  }
+
+  // parse ROS message
+  if (field->isMessage()) {
+    // TODO
+  }
+
+  // ignore strings (set to empty string)
+  if (field->getType()->isString()) {
+    for(std::size_t i = 0; i < field->size(); i++) {
+      field->set(std::string(), i);
+      data++;
+    }
+    return data;
+  }
+
+  // read doubles
+  for(std::size_t i = 0; i < field->size(); i++) {
+    field->set(*data++, i);
+  }
+
+  return data;
 }
 
 Array Conversion::emptyArray() const {

@@ -34,6 +34,14 @@ using namespace cpp_introspection;
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
-  PackagePtr package = cpp_introspection::@package@::Instance();
+  PackagePtr package = cpp_introspection::package("@package@");
+  if (package)
+  {
+    mexPrintf("[rosmatlab] Package @package@ already loaded.\n");
+    return;
+  }
+
+  package = cpp_introspection::@package@::Instance();
+  mexPrintf("[rosmatlab] Loaded package @package@.\n");
   return;
 }

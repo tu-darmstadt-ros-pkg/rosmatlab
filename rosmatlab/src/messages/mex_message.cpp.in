@@ -28,10 +28,14 @@
 
 #include <introspection/message.h>
 #include <rosmatlab/conversion.h>
+#include <rosmatlab/options.h>
 #include "introspection/@package@/package.h"
 #include "mex.h"
 
+#include <@package@/@msg@.h>
+
 using namespace rosmatlab;
+typedef ::@package@::@msg@ MessageType;
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
@@ -44,11 +48,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
 
   // parse inputs
-  Array repmat_rhs[3] = { 0, 0, 0 };
+  mxArray *repeat = 0;
   bool want_array = false;
   for(int i = 0; i < nrhs; i++) {
     if (mxIsChar(prhs[i])) {
-      std::string option(mxGetChars(prhs[i]), mxGetChars(prhs[i]) + mxGetNumberOfElements(prhs[i]));
+      std::string option = Options::getString(prhs[i]);
       if (option == "expand") want_array = true;
       if (option == "definition") {
         plhs[0] = mxCreateString(message->getDefinition());
@@ -58,26 +62,39 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         plhs[0] = mxCreateString(message->getMD5Sum());
         return;
       }
+      continue;
     }
 
-    if (mxIsNumeric(prhs[i]) && !repmat_rhs[1]) {
-      repmat_rhs[1] = mxDuplicateArray(prhs[i]);
+    if (mxIsNumeric(prhs[i]) && mxGetNumberOfElements(prhs[i]) == 1 && !repeat) {
+      repeat = mxDuplicateArray(prhs[i]);
+      continue;
+    }
+
+    if (mxIsStruct(prhs[i]) || mxIsDouble(prhs[i])) {
+      std::size_t size = mxIsDouble(prhs[i]) ? (mxGetM(prhs[i]) > 1 ? mxGetN(prhs[i]) : 1) : mxGetNumberOfElements(prhs[i]);
+      for(std::size_t j = 0; j < size; j++) {
+        MessagePtr m = Conversion(message).fromMatlab(prhs[i], j);
+//        std::cout << "Constructed a " << m->getDataType() << " message: " << *boost::shared_static_cast<MessageType const>(m->getConstInstance()) << std::endl;
+        Conversion conversion(m);
+        plhs[0] = want_array ? conversion.toDoubleMatrix(plhs[0], j) : conversion.toStruct(plhs[0], j);
+      }
     }
   }
 
-  VoidPtr instance = message->createInstance();
-  Conversion conversion(message->introspect(instance.get()));
-  plhs[0] = want_array ? conversion.toDoubleMatrix() : conversion.toStruct();
+  if (!plhs[0]) {
+    MessagePtr m = message->introspect(message->createInstance());
+//    std::cout << "Constructed a new " << m->getDataType() << " message: " << *boost::shared_static_cast<MessageType const>(m->getConstInstance()) << std::endl;
+    Conversion conversion(m);
+    plhs[0] = want_array ? conversion.toDoubleMatrix() : conversion.toStruct();
+  }
 
-  if (repmat_rhs[1]) {
-    repmat_rhs[0] = plhs[0];
-    repmat_rhs[2] = mxCreateDoubleScalar(1);
+  if (repeat) {
+    mxArray *repmat_rhs[3] = { plhs[0], mxCreateDoubleScalar(1), repeat };
     mexCallMATLAB(nlhs, plhs, 3, repmat_rhs, "repmat");
+    mxDestroyArray(repmat_rhs[0]);
+    mxDestroyArray(repmat_rhs[1]);
+    mxDestroyArray(repmat_rhs[2]);
   }
-
-  mxDestroyArray(repmat_rhs[0]);
-  mxDestroyArray(repmat_rhs[1]);
-  mxDestroyArray(repmat_rhs[2]);
 
   return;
 }

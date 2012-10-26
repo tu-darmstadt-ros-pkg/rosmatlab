@@ -1,7 +1,10 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(rosmatlab)
 
+# Find an installation of Matlab
+set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 find_package(Matlab REQUIRED)
+
 set(${PROJECT_NAME}_INCLUDE_DIRS ${MATLAB_INCLUDE_DIR} ${Boost_INCLUDE_DIRS} include)
 include_directories(${${PROJECT_NAME}_INCLUDE_DIRS})
 
@@ -22,4 +25,3 @@ configure_file(setup.m.in setup.m @ONLY)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/setup.m DESTINATION share/${PROJECT_NAME})
 install(DIRECTORY matlab/ DESTINATION ${PROJECT_MATLAB_INSTALL_DESTINATION})
 install(DIRECTORY include/ DESTINATION include)
-

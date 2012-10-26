@@ -3,10 +3,6 @@ cmake_minimum_required(VERSION 2.8.3)
 find_package(catkin REQUIRED)
 catkin_stack()
 
-# Find an installation of Matlab
-list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
-find_package(Matlab REQUIRED)
-
 # Find Boost version in the Matlab environment and add catkin env hook
 unset(Boost_INCLUDE_DIR CACHE)
 unset(Boost_LIBRARY_DIR CACHE)

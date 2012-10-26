@@ -40,26 +40,37 @@ class Conversion;
 typedef boost::shared_ptr<Conversion> ConversionPtr;
 
 typedef mxArray *Array;
+typedef mxArray const *ConstArray;
 
 class Conversion {
 public:
   Conversion(const MessagePtr &message);
   virtual ~Conversion();
 
-  Array operator()();
   virtual Array toMatlab() { return toStruct(); }
 
   virtual Array toDoubleMatrix();
-  virtual Array toDoubleMatrix(Array target, std::size_t index = 0);
+  virtual Array toDoubleMatrix(Array target, std::size_t n = 0);
 
   virtual Array toStruct();
   virtual Array toStruct(Array target, std::size_t index = 0);
 
-  virtual Array convert(const FieldPtr& field);
+  virtual MessagePtr fromMatlab(ConstArray source, std::size_t index = 0);
+  virtual void fromMatlab(const MessagePtr &message, ConstArray source, std::size_t index = 0);
+
+  virtual Array convertToMatlab(const FieldPtr& field);
+  virtual void convertFromMatlab(const FieldPtr& field, ConstArray source);
+  virtual const double *convertFromDouble(const FieldPtr& field, const double *begin, const double *end);
+
   const MessagePtr& expanded();
 
 protected:
   Array emptyArray() const;
+
+  virtual void fromDoubleMatrix(const MessagePtr &message, ConstArray source, std::size_t n = 0);
+  virtual void fromDoubleMatrix(const MessagePtr &message, const double *begin, const double *end);
+  virtual void fromStruct(const MessagePtr &message, ConstArray source, std::size_t index = 0);
+
   MessagePtr message_;
   MessagePtr expanded_;
 };
