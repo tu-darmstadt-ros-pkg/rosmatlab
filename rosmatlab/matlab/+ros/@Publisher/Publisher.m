@@ -9,6 +9,10 @@ classdef Publisher < handle
         NumSubscribers
         Latched
     end
+    
+    properties
+        UserData
+    end
 
     methods
         function obj = Publisher(varargin)

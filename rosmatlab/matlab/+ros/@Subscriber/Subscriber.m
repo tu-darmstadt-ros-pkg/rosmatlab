@@ -12,6 +12,7 @@ classdef Subscriber < handle
 
     properties
         PollPeriod = 0.01
+        UserData
     end
 
     events
@@ -26,6 +27,7 @@ classdef Subscriber < handle
 
         function delete(obj)
             obj.stop();
+            delete(obj.poll_timer);
             mex(obj, 'delete');
             obj.handle = 0;
         end
