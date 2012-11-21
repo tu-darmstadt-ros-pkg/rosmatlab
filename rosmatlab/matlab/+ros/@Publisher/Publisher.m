@@ -16,32 +16,32 @@ classdef Publisher < handle
 
     methods
         function obj = Publisher(varargin)
-            obj.handle = mex(obj, 'create', varargin{:});
+            obj.handle = internal(obj, 'create', varargin{:});
         end
 
         function delete(obj)
-            mex(obj, 'delete');
+            internal(obj, 'delete');
             obj.handle = 0;
         end
 
         function result = advertise(obj, topic, datatype, varargin)
-            result = mex(obj, 'advertise', topic, datatype, varargin{:});
+            result = internal(obj, 'advertise', topic, datatype, varargin{:});
         end
 
         function publish(obj, varargin)
-            mex(obj, 'publish', varargin{:});
+            internal(obj, 'publish', varargin{:});
         end
 
         function result = get.Topic(obj)
-            result = mex(obj, 'getTopic');
+            result = internal(obj, 'getTopic');
         end
 
         function result = get.NumSubscribers(obj)
-            result = mex(obj, 'getNumSubscribers');
+            result = internal(obj, 'getNumSubscribers');
         end
 
         function result = get.Latched(obj)
-            result = mex(obj, 'isLatched');
+            result = internal(obj, 'isLatched');
         end
     end
 end

@@ -21,14 +21,14 @@ classdef Subscriber < handle
 
     methods
         function obj = Subscriber(varargin)
-            obj.handle = mex(obj, 'create', varargin{:});
+            obj.handle = internal(obj, 'create', varargin{:});
             obj.poll_timer = timer('ExecutionMode', 'fixedDelay', 'ObjectVisibility', 'off', 'TimerFcn', @(~,~) obj.poll(0));
         end
 
         function delete(obj)
             obj.stop();
             delete(obj.poll_timer);
-            mex(obj, 'delete');
+            internal(obj, 'delete');
             obj.handle = 0;
         end
 
@@ -42,28 +42,28 @@ classdef Subscriber < handle
         end
 
         function result = subscribe(obj, topic, datatype, varargin)
-            result = mex(obj, 'subscribe', topic, datatype, varargin{:});
+            result = internal(obj, 'subscribe', topic, datatype, varargin{:});
         end
 
         function message = poll(obj, varargin)
-            message = mex(obj, 'poll', varargin{:});
+            message = internal(obj, 'poll', varargin{:});
             if (~isempty(message)); notify(obj, 'Callback', ros.MessageEvent(message)); end
         end
 
         function result = getConnectionHeader(obj)
-            result = mex(obj, 'getConnectionHeader');
+            result = internal(obj, 'getConnectionHeader');
         end
 
         function result = getReceiptTime(obj)
-            result = mex(obj, 'getReceiptTime');
+            result = internal(obj, 'getReceiptTime');
         end
 
         function result = get.Topic(obj)
-            result = mex(obj, 'getTopic');
+            result = internal(obj, 'getTopic');
         end
 
         function result = get.NumPublishers(obj)
-            result = mex(obj, 'getNumPublishers');
+            result = internal(obj, 'getNumPublishers');
         end
 
         function set.PollPeriod(obj, period)
