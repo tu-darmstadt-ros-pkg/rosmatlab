@@ -32,16 +32,31 @@
 
 using namespace cpp_introspection;
 
+namespace rosmatlab {
+namespace messages {
+namespace @package@ {
+  PackagePtr Instance() {
+    // TODO: implement recursive message loading
+    // @load_dependent_packages@
+
+    PackagePtr package = cpp_introspection::package("@package@");
+    if (package)
+    {
+      mexPrintf("[rosmatlab] Package @package@ already loaded.\n");
+      return package;
+    }
+
+    package = cpp_introspection::@package@::Instance();
+    mexPrintf("[rosmatlab] Loaded package @package@.\n");
+
+    return package;
+  }
+} // namespace @package@
+} // namespace messages
+} // namespace rosmatlab
+
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
-  PackagePtr package = cpp_introspection::package("@package@");
-  if (package)
-  {
-    mexPrintf("[rosmatlab] Package @package@ already loaded.\n");
-    return;
-  }
-
-  package = cpp_introspection::@package@::Instance();
-  mexPrintf("[rosmatlab] Loaded package @package@.\n");
+  rosmatlab::messages::@package@::Instance();
   return;
 }

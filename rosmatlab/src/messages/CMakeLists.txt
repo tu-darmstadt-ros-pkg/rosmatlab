@@ -8,6 +8,9 @@ if(TARGET mex_${package})
   return()
 endif()
 
+# Find all dependent message packages
+
+
 # List all messages in package ${package}
 execute_process(
   COMMAND rosmsg package ${package}
@@ -32,6 +35,8 @@ find_library(introspection_${package} PATH_SUFFIXES introspection)
 if(NOT introspection_${package})
   introspection_add(${package})
 endif()
+
+# Set install RPATH
 list(APPEND CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib" "${CMAKE_INSTALL_PREFIX}/lib/introspection")
 
 # Iterate over all messages and generate mex

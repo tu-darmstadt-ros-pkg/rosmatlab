@@ -1,0 +1,17 @@
+<package>
+  <name>rosrtw</name>
+  <version>0.1.0</version>
+  <description>
+     rosrtw
+  </description>
+  <maintainer email="meyer@fsr.tu-darmstadt.de">Johannes Meyer</maintainer>
+  <author email="meyer@fsr.tu-darmstadt.de">Johannes Meyer</author>
+  <license>BSD</license>
+  <url type="website">http://github.com/tu-darmstadt-ros-pkg/rosmatlab/wiki/rtw</url>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>rosmatlab</build_depend>
+  <run_depend>rosmatlab</run_depend>
+
+</package>
+

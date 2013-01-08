@@ -1,14 +1,24 @@
+# Find the rosmatlab source folder
+if(@INSTALLSPACE@)
+  set(rosmatlab_SOURCE_DIR "@CMAKE_INSTALL_PREFIX@/@CATKIN_PACKAGE_SHARE_DESTINATION@")
+else()
+  set(rosmatlab_SOURCE_DIR "@PROJECT_SOURCE_DIR@")
+endif()
+
+# Set install destinations for global and package-specific matlab files
+set(GLOBAL_MATLAB_DESTINATION matlab)
+set(PACKAGE_MATLAB_DESTINATION matlab/+${PROJECT_NAME})
+
+# Find Matlab and load mex macros
 list(APPEND CMAKE_MODULE_PATH @rosmatlab_SOURCE_DIR@/cmake)
 include(FindMatlab)
 include(MatlabMexMacro)
 
-set(rosmatlab_SOURCE_DIR "@PROJECT_SOURCE_DIR@")
-set(rosmatlab_LIBRARY_DIRS ${MATLAB_ROOT}/extern/lib)
-set(PROJECT_MATLAB_INSTALL_DESTINATION matlab)
-
+# Find cpp_introspection
 find_package(cpp_introspection REQUIRED)
 include_directories(${cpp_introspection_INCLUDE_DIRS})
 
+# Define add_mex macro
 include(CMakeParseArguments)
 function(add_mex lib)
   cmake_parse_arguments(${lib} "" "OUTPUT_NAME;PACKAGE" "SOURCES" ${ARGN})
@@ -47,9 +57,10 @@ function(add_mex lib)
     set_target_properties(${lib} PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${MEX_OUTPUT_PATH}/${${lib}_PACKAGE}")
   endif()
 
-  install(TARGETS ${lib} DESTINATION ${PROJECT_MATLAB_INSTALL_DESTINATION}/${${lib}_PACKAGE})
+  install(TARGETS ${lib} DESTINATION ${GLOBAL_MATLAB_DESTINATION}/${${lib}_PACKAGE})
 endfunction()
 
+# Define add_mex_messages macro
 function(add_mex_messages package)
   if(NOT TARGET mex_${package})
     message(STATUS "Building MEX message library for package ${package}")

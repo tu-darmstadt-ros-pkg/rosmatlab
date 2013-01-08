@@ -15,4 +15,4 @@ for lib in ${PRELOAD_LIBS[@]}; do
 done
 export LD_PRELOAD
 
-$MATLAB_ROOT/bin/matlab -r "run @CMAKE_INSTALL_PREFIX@/share/rosmatlab/setup.m" "$@"
+$MATLAB_ROOT/bin/matlab -r "run @CMAKE_INSTALL_PREFIX@/setup.m" "$@"

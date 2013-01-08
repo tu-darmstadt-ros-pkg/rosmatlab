@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 2.8.3)
 project(rosrtw)
 
 find_package(rosmatlab REQUIRED)
@@ -14,10 +14,8 @@ set(rosrtw_INCLUDE_DIRS
   ${MATLAB_ROOT}/rtw/c/src/ext_mode/common
 )
 
-configure_file(cmake/rosrtw.cmake.in ${PROJECT_SOURCE_DIR}/cmake/rosrtw.cmake @ONLY)
-
 find_package(catkin REQUIRED)
-catkin_project(${PROJECT_NAME}
+catkin_package(
   INCLUDE_DIRS ${rosrtw_INCLUDE_DIRS}
   DEPENDS rosmatlab
   CFG_EXTRAS rosrtw.cmake

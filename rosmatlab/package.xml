@@ -1,0 +1,20 @@
+<package>
+  <name>rosmatlab</name>
+  <version>0.1.0</version>
+  <description>
+     rosmatlab provides the core functionality to use ROS from within Matlab.
+     Basically it's a MEX wrapper built on top of roscpp.
+  </description>
+  <maintainer email="meyer@fsr.tu-darmstadt.de">Johannes Meyer</maintainer>
+  <author email="meyer@fsr.tu-darmstadt.de">Johannes Meyer</author>
+  <license>BSD</license>
+  <url type="website">http://github.com/tu-darmstadt-ros-pkg/rosmatlab/wiki</url>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>cpp_introspection</build_depend>
+  <run_depend>roscpp</run_depend>
+  <run_depend>cpp_introspection</run_depend>
+
+</package>
+
