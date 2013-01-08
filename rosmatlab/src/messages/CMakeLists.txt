@@ -37,7 +37,7 @@ if(NOT introspection_${package})
 endif()
 
 # Set install RPATH
-list(APPEND CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib" "${CMAKE_INSTALL_PREFIX}/lib/introspection")
+list(APPEND CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${CATKIN_GLOBAL_LIB_DESTINATION}" "${CMAKE_INSTALL_PREFIX}/${CATKIN_GLOBAL_LIB_DESTINATION}/introspection")
 
 # Iterate over all messages and generate mex
 unset(_msgs_LIBRARIES)
@@ -54,3 +54,4 @@ configure_file(mex_package.cpp.in mex_${package}.cpp @ONLY)
 add_mex(mex_${package} mex_${package}.cpp)
 target_link_libraries(mex_${package} ${_msgs_LIBRARIES} introspection_${package})
 set_target_properties(mex_${package} PROPERTIES OUTPUT_NAME ${package})
+
