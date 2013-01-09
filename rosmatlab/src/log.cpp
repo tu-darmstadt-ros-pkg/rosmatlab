@@ -53,6 +53,7 @@ static bool getLevel(const std::string& str, Level &level) {
 }
 
 static bool getLevel(double dbl, Level &level) {
+  if (isnan(dbl)) return false;
   unsigned int i = static_cast<unsigned int>(dbl);
   if (i >= Count) return false;
   level = static_cast<Level>(i);
@@ -109,7 +110,7 @@ void log(Level level, const char *name, const char *fmt, ...)
   va_start(args, fmt);
   ros::console::vformatToBuffer(g_print_buffer, g_print_buffer_size, fmt, args);
   va_end(args);
-  std::stringstream message(std::string(g_print_buffer.get(), g_print_buffer_size));
+  std::stringstream message(std::string(g_print_buffer.get()));
 
   // get stack information from matlab
   mxArray *stack;
