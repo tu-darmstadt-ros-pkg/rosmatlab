@@ -26,11 +26,19 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //=================================================================================================
 
-#include <mex.h>
+#include <rosmatlab/mex.h>
 #include <rosmatlab/ros.h>
+
+using namespace rosmatlab;
 
 void mexFunction( int nlhs, mxArray *plhs[],
                   int nrhs, const mxArray *prhs[] )
 {
-  rosmatlab::init();
+  try {
+    init();
+    param::has(nlhs, plhs, nrhs, prhs);
+
+  } catch(Exception& e) {
+    mexErrMsgTxt(e.what());
+  }
 }

@@ -35,7 +35,7 @@ namespace rosmatlab {
 
 bool Options::isString(const mxArray *value)
 {
-  return mxIsChar(value);
+  return value && mxIsChar(value);
 }
 
 std::string Options::getString(const mxArray *value)
@@ -49,7 +49,7 @@ std::string Options::getString(const mxArray *value)
 
 bool Options::isDoubleScalar(const mxArray *value)
 {
-  return mxIsDouble(value) && (mxGetNumberOfElements(value) == 1);
+  return value && mxIsDouble(value) && (mxGetNumberOfElements(value) == 1);
 }
 
 double Options::getDoubleScalar(const mxArray *value)
@@ -60,7 +60,7 @@ double Options::getDoubleScalar(const mxArray *value)
 
 bool Options::isLogicalScalar(const mxArray *value)
 {
-  return mxIsLogicalScalar(value);
+  return value && mxIsLogicalScalar(value);
 }
 
 bool Options::getLogicalScalar(const mxArray *value)

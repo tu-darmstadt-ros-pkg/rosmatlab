@@ -29,14 +29,17 @@
 #ifndef ROSMATLAB_PARAM_H
 #define ROSMATLAB_PARAM_H
 
+#include <matrix.h>
+
 namespace rosmatlab {
+namespace param {
 
-class Param
-{
-public:
-  Param();
-};
+void get(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
+void set(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
+void del(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
+void has(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
 
+} // namespace param
 } // namespace rosmatlab
 
 #endif // ROSMATLAB_PARAM_H

@@ -5,7 +5,7 @@ project(rosmatlab)
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 find_package(Matlab REQUIRED)
 
-set(${PROJECT_NAME}_INCLUDE_DIRS ${MATLAB_INCLUDE_DIR} ${Boost_INCLUDE_DIRS} include)
+set(${PROJECT_NAME}_INCLUDE_DIRS include ${MATLAB_INCLUDE_DIR} ${Boost_INCLUDE_DIRS})
 include_directories(${${PROJECT_NAME}_INCLUDE_DIRS})
 
 find_package(catkin REQUIRED cpp_introspection roscpp)

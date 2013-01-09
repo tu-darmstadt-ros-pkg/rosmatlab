@@ -36,5 +36,6 @@
 #include "publisher.h"
 #include "subscriber.h"
 #include "param.h"
+#include "log.h"
 
 #endif // ROSMATLAB_ROS_H

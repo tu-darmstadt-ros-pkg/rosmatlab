@@ -1,5 +1,5 @@
 //=================================================================================================
-// Copyright (c) 2012, Johannes Meyer, TU Darmstadt
+// Copyright (c) 2013, Johannes Meyer, TU Darmstadt
 // All rights reserved.
 
 // Redistribution and use in source and binary forms, with or without
@@ -26,20 +26,48 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //=================================================================================================
 
-#include <rosmatlab/mex.h>
-#include <rosmatlab/ros.h>
+#ifndef ROSMATLAB_MEX_H
+#define ROSMATLAB_MEX_H
 
-void mexFunction( int nlhs, mxArray *plhs[],
-                  int nrhs, const mxArray *prhs[] )
-{
-  try {
-    if (ros::isInitialized()) {
-      rosmatlab::shutdown();
-      mexPrintf("[rosmatlab] ROS node shut down.\n");
+#include <mex.h>
+#include <iostream>
+
+#include <rosmatlab/exception.h>
+
+namespace rosmatlab {
+
+class MexEnvironment {
+private:
+  class matlab_streambuf : public std::streambuf {
+  public:
+  protected:
+    virtual std::streamsize xsputn(const char *s, std::streamsize n) {
+      mexPrintf("%.*s",n,s);
+      return n;
     }
-  } catch(rosmatlab::Exception& e) {
-    mexErrMsgTxt(e.what());
+
+    virtual int overflow(int c = EOF) {
+      if (c != EOF) {
+        mexPrintf("%.1s",&c);
+      }
+      return 1;
+    }
+  };
+
+public:
+  MexEnvironment(int nrhs = 0, const mxArray **prhs = 0) {
+    outbuf = std::cout.rdbuf(&mout);
   }
 
-  if (nlhs > 0) plhs[0] = mxCreateLogicalScalar(!ros::isInitialized());
-}
+  ~MexEnvironment() {
+    std::cout.rdbuf(outbuf);
+  }
+
+private:
+  matlab_streambuf mout;
+  std::streambuf *outbuf;
+};
+
+} // namespace rosmatlab
+
+#endif // ROSMATLAB_MEX_H

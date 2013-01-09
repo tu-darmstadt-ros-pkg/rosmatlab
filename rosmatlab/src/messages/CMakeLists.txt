@@ -45,7 +45,7 @@ foreach(msg ${${package}_MSGS})
   message(STATUS "Generating MEX for message ${package}/${msg}...")
 
   configure_file(mex_message.cpp.in mex_${msg}.cpp @ONLY)
-  add_mex(mex_${package}_${msg} mex_${msg}.cpp PACKAGE +${package} OUTPUT_NAME ${msg})
+  add_mex(mex_${package}_${msg} mex_${msg}.cpp PACKAGE ${package} OUTPUT_NAME ${msg})
   target_link_libraries(mex_${package}_${msg} ${rosmatlab_LIBRARIES} introspection_${package})
   list(APPEND _msgs_LIBRARIES mex_${package}_${msg})
 endforeach()

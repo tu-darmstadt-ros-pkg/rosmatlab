@@ -26,8 +26,9 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //=================================================================================================
 
-#include <mex.h>
+#include <rosmatlab/mex.h>
 #include <rosmatlab/ros.h>
+
 #include <ros/time.h>
 
 using namespace rosmatlab;
@@ -35,6 +36,11 @@ using namespace rosmatlab;
 void mexFunction( int nlhs, mxArray *plhs[],
                   int nrhs, const mxArray *prhs[] )
 {
-  init();
-  plhs[0] = mxCreateDoubleScalar(ros::Time::now().toSec());
+  try {
+    init();
+    plhs[0] = mxCreateDoubleScalar(ros::Time::now().toSec());
+
+  } catch(rosmatlab::Exception& e) {
+    mexErrMsgTxt(e.what());
+  }
 }

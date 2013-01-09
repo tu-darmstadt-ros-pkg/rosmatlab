@@ -30,6 +30,7 @@
 #include <rosmatlab/exception.h>
 #include <rosmatlab/options.h>
 #include <rosmatlab/conversion.h>
+#include <rosmatlab/log.h>
 
 #include <introspection/message.h>
 
@@ -167,7 +168,7 @@ MessagePtr Subscriber::introspect(const VoidConstPtr& msg) {
 void Subscriber::callback(const ros::MessageEvent<void>& event)
 {
   if (new_event_) {
-    ROS_WARN_NAMED("rosmatlab", "missed a %s message on topic %s, polling is too slow...", options_.datatype.c_str(), options_.topic.c_str());
+    ROSMATLAB_WARN("missed a %s message on topic %s, polling is too slow...", options_.datatype.c_str(), options_.topic.c_str());
     return;
   }
   new_event_.reset(new MessageEvent(event));
@@ -177,7 +178,7 @@ VoidConstPtr SubscriptionCallbackHelper::deserialize(const ros::SubscriptionCall
 {
   ros::serialization::IStream stream(params.buffer, params.length);
   VoidPtr msg = subscriber_->introspection_->deserialize(stream);
-  if (!msg) ROS_WARN_NAMED("rosmatlab", "deserialization of a message of type %s failed", subscriber_->options_.datatype.c_str());
+  if (!msg) ROSMATLAB_WARN("deserialization of a message of type %s failed", subscriber_->options_.datatype.c_str());
 
   // TODO: setConnectionHeader
   return VoidConstPtr(msg);

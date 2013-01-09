@@ -26,20 +26,34 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //=================================================================================================
 
-#include <rosmatlab/mex.h>
-#include <rosmatlab/ros.h>
+#ifndef ROSMATLAB_LOG_H
+#define ROSMATLAB_LOG_H
 
-void mexFunction( int nlhs, mxArray *plhs[],
-                  int nrhs, const mxArray *prhs[] )
-{
-  try {
-    if (ros::isInitialized()) {
-      rosmatlab::shutdown();
-      mexPrintf("[rosmatlab] ROS node shut down.\n");
-    }
-  } catch(rosmatlab::Exception& e) {
-    mexErrMsgTxt(e.what());
-  }
+#include <matrix.h>
+#include <ros/console.h>
 
-  if (nlhs > 0) plhs[0] = mxCreateLogicalScalar(!ros::isInitialized());
-}
+namespace rosmatlab {
+namespace log {
+
+using namespace ::ros::console::levels;
+
+void log(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
+void log(Level level, int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
+void log(Level level, const char *name, const char *fmt, ...);
+
+} // namespace log
+} // namespace rosmatlab
+
+#define ROSMATLAB_DEBUG(...) ::rosmatlab::log::log(::rosmatlab::log::Debug, 0, __VA_ARGS__)
+#define ROSMATLAB_INFO(...)  ::rosmatlab::log::log(::rosmatlab::log::Info,  0, __VA_ARGS__)
+#define ROSMATLAB_WARN(...)  ::rosmatlab::log::log(::rosmatlab::log::Warn,  0, __VA_ARGS__)
+#define ROSMATLAB_ERROR(...) ::rosmatlab::log::log(::rosmatlab::log::Error, 0, __VA_ARGS__)
+#define ROSMATLAB_FATAL(...) ::rosmatlab::log::log(::rosmatlab::log::Fatal, 0, __VA_ARGS__)
+
+#define ROSMATLAB_DEBUG_NAMED(name, ...) ::rosmatlab::log::log(::rosmatlab::log::Debug, name, __VA_ARGS__)
+#define ROSMATLAB_INFO_NAMED(name, ...)  ::rosmatlab::log::log(::rosmatlab::log::Info,  name, __VA_ARGS__)
+#define ROSMATLAB_WARN_NAMED(name, ...)  ::rosmatlab::log::log(::rosmatlab::log::Warn,  name, __VA_ARGS__)
+#define ROSMATLAB_ERROR_NAMED(name, ...) ::rosmatlab::log::log(::rosmatlab::log::Error, name, __VA_ARGS__)
+#define ROSMATLAB_FATAL_NAMED(name, ...) ::rosmatlab::log::log(::rosmatlab::log::Fatal, name, __VA_ARGS__)
+
+#endif // ROSMATLAB_LOG_H

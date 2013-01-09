@@ -29,17 +29,16 @@
 #include <rosmatlab/mex.h>
 #include <rosmatlab/ros.h>
 
+using namespace rosmatlab;
+
 void mexFunction( int nlhs, mxArray *plhs[],
                   int nrhs, const mxArray *prhs[] )
 {
   try {
-    if (ros::isInitialized()) {
-      rosmatlab::shutdown();
-      mexPrintf("[rosmatlab] ROS node shut down.\n");
-    }
-  } catch(rosmatlab::Exception& e) {
+    init();
+    param::set(nlhs, plhs, nrhs, prhs);
+
+  } catch(Exception& e) {
     mexErrMsgTxt(e.what());
   }
-
-  if (nlhs > 0) plhs[0] = mxCreateLogicalScalar(!ros::isInitialized());
 }

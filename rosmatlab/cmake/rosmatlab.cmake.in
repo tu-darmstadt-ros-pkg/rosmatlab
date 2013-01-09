@@ -21,7 +21,7 @@ include_directories(${cpp_introspection_INCLUDE_DIRS})
 # Define add_mex macro
 include(CMakeParseArguments)
 function(add_mex lib)
-  cmake_parse_arguments(${lib} "" "OUTPUT_NAME;PACKAGE" "SOURCES" ${ARGN})
+  cmake_parse_arguments(${lib} "" "OUTPUT_NAME;PACKAGE;DESTINATION" "SOURCES" ${ARGN})
   set(${lib}_SOURCES ${${lib}_SOURCES} ${${lib}_UNPARSED_ARGUMENTS})
 
   ADD_MEX_FILE(${lib} ${${lib}_SOURCES})
@@ -50,14 +50,18 @@ function(add_mex lib)
     set_target_properties(${lib} PROPERTIES OUTPUT_NAME "${${lib}_OUTPUT_NAME}")
   endif()
 
-  if (NOT DEFINED MEX_OUTPUT_PATH)
-    # mex files are private (prevent name clashes if CMAKE_LIBRARY_OUTPUT_DIRECTORY is set)
-    set_target_properties(${lib} PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/${${lib}_PACKAGE}")
-  else()
-    set_target_properties(${lib} PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${MEX_OUTPUT_PATH}/${${lib}_PACKAGE}")
+  if(DEFINED ${lib}_PACKAGE)
+    set(${lib}_DESTINATION "+${${lib}_PACKAGE}/${${lib}_DESTINATION}")
   endif()
 
-  install(TARGETS ${lib} DESTINATION ${GLOBAL_MATLAB_DESTINATION}/${${lib}_PACKAGE})
+  if (NOT DEFINED MEX_OUTPUT_PATH)
+    # mex files are private (prevent name clashes if CMAKE_LIBRARY_OUTPUT_DIRECTORY is set)
+    set_target_properties(${lib} PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/${${lib}_DESTINATION}")
+  else()
+    set_target_properties(${lib} PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${MEX_OUTPUT_PATH}/${${lib}_DESTINATION}")
+  endif()
+
+  install(TARGETS ${lib} DESTINATION ${GLOBAL_MATLAB_DESTINATION}/${${lib}_DESTINATION})
 endfunction()
 
 # Define add_mex_messages macro

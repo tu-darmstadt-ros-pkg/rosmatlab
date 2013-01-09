@@ -26,7 +26,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //=================================================================================================
 
-#include <mex.h>
+#include <rosmatlab/mex.h>
 #include <rosmatlab/ros.h>
 #include <rosmatlab/options.h>
 
@@ -35,11 +35,11 @@ using namespace rosmatlab;
 void mexFunction( int nlhs, mxArray *plhs[],
                   int nrhs, const mxArray *prhs[] )
 {
-  if (nrhs < 1) {
-    throw Exception("At least 1 input argument is required");
-  }
-
   try {
+    if (nrhs < 1) {
+      throw Exception("At least 1 input argument is required");
+    }
+
     init();
     Subscriber *subscriber = getObject<Subscriber>(*prhs++); nrhs--;
     std::string method;
