@@ -16,6 +16,9 @@ target_link_libraries(ros_subscriber rosmatlab)
 add_mex(ros_publisher ros_publisher.cpp OUTPUT_NAME internal DESTINATION +ros/@Publisher/private)
 target_link_libraries(ros_publisher rosmatlab)
 
+add_mex(ros_param ros_param.cpp OUTPUT_NAME param DESTINATION +ros)
+target_link_libraries(ros_param rosmatlab)
+
 add_mex(ros_param_get ros_param_get.cpp OUTPUT_NAME get DESTINATION +ros/+param)
 target_link_libraries(ros_param_get rosmatlab)
 

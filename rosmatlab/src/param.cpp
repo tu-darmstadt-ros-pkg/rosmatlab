@@ -262,7 +262,8 @@ void del(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
 
   std::string key = Options::getString(prhs[0]);
-  if (nlhs > 0) plhs[0] = mxCreateLogicalScalar(ros::param::del(key));
+  bool result = ros::param::del(key);
+  if (nlhs > 0) plhs[0] = mxCreateLogicalScalar(result);
 }
 
 void has(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
