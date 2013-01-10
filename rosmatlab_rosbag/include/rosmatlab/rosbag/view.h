@@ -1,5 +1,5 @@
 //=================================================================================================
-// Copyright (c) 2012, Johannes Meyer, TU Darmstadt
+// Copyright (c) 2013, Johannes Meyer, TU Darmstadt
 // All rights reserved.
 
 // Redistribution and use in source and binary forms, with or without
@@ -26,58 +26,29 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //=================================================================================================
 
-#ifndef ROSMATLAB_OPTIONS_H
-#define ROSMATLAB_OPTIONS_H
+#ifndef ROSMATLAB_ROSBAG_VIEW_H
+#define ROSMATLAB_ROSBAG_VIEW_H
 
-#include <matrix.h>
-#include <string>
-#include <map>
+#include <rosbag/view.h>
+
+#include <rosmatlab/rosbag/bag.h>
+#include <rosmatlab/conversion.h>
 
 namespace rosmatlab {
-class Options {
+namespace rosbag {
+
+class View {
 public:
+  View(const Bag &bag, int nrhs, const mxArray *prhs[]);
+  virtual ~View();
 
-  static bool isString(const mxArray *value);
-  static std::string getString(const mxArray *value);
-
-  static bool isScalar(const mxArray *value);
-
-  static bool isDoubleScalar(const mxArray *value);
-  static double getDoubleScalar(const mxArray *value);
-
-  static bool isIntegerScalar(const mxArray *value);
-  static int getIntegerScalar(const mxArray *value);
-
-  static bool isLogicalScalar(const mxArray *value);
-  static bool getLogicalScalar(const mxArray *value);
-
-public:
-  Options();
-  Options(int nrhs, const mxArray *prhs[]);
-  virtual ~Options();
-
-  void init(int nrhs, const mxArray *prhs[]);
-
-  bool hasKey(const std::string& key) const;
-
-  const std::string& getString(const std::string& key, const std::string& default_value = std::string());
-  double getDouble(const std::string& key, double default_value = 0);
-  bool getBool(const std::string& key, bool default_value = false);
-
-  Options &set(const std::string& key, const std::string& value);
-  Options &set(const std::string& key, double value);
-  Options &set(const std::string& key, bool value);
-
-  void warnUnused();
+  View &init(int nrhs, const mxArray *prhs[]);
 
 private:
-  std::map<std::string,std::string> strings_;
-  std::map<std::string,double> doubles_;
-  std::map<std::string,bool> logicals_;
-
-  std::map<std::string,bool> used_;
+  const Bag &bag_;
 };
 
+} // namespace rosbag
 } // namespace rosmatlab
 
-#endif // ROSMATLAB_OPTIONS_H
+#endif // ROSMATLAB_ROSBAG_VIEW_H

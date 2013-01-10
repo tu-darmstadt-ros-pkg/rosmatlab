@@ -1,5 +1,5 @@
 //=================================================================================================
-// Copyright (c) 2012, Johannes Meyer, TU Darmstadt
+// Copyright (c) 2013, Johannes Meyer, TU Darmstadt
 // All rights reserved.
 
 // Redistribution and use in source and binary forms, with or without
@@ -26,58 +26,39 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //=================================================================================================
 
-#ifndef ROSMATLAB_OPTIONS_H
-#define ROSMATLAB_OPTIONS_H
+#ifndef ROSMATLAB_ROSBAG_BAG_H
+#define ROSMATLAB_ROSBAG_BAG_H
 
-#include <matrix.h>
-#include <string>
-#include <map>
+#include <rosbag/bag.h>
+#include <rosmatlab/object.h>
 
 namespace rosmatlab {
-class Options {
+namespace rosbag {
+
+class Bag : public ::rosbag::Bag, public Object<Bag> {
 public:
+  Bag();
+  Bag(int nrhs, const mxArray *prhs[]);
+  virtual ~Bag();
 
-  static bool isString(const mxArray *value);
-  static std::string getString(const mxArray *value);
+  void open(int nrhs, const mxArray *prhs[]);
+  void close();
 
-  static bool isScalar(const mxArray *value);
+  mxArray *getFileName()     const;                      //!< Get the filename of the bag
+  mxArray *getMode()         const;                      //!< Get the mode the bag is in
+  mxArray *getMajorVersion() const;                      //!< Get the major-version of the open bag file
+  mxArray *getMinorVersion() const;                      //!< Get the minor-version of the open bag file
+  mxArray *getSize()         const;                      //!< Get the current size of the bag file (a lower bound)
 
-  static bool isDoubleScalar(const mxArray *value);
-  static double getDoubleScalar(const mxArray *value);
+  void     setCompression(int nrhs, const mxArray *prhs[]);     //!< Set the compression method to use for writing chunks
+  mxArray *getCompression() const;                              //!< Get the compression method to use for writing chunks
+  void     setChunkThreshold(int nrhs, const mxArray *prhs[]);  //!< Set the threshold for creating new chunks
+  mxArray *getChunkThreshold() const;                           //!< Get the threshold for creating new chunks
 
-  static bool isIntegerScalar(const mxArray *value);
-  static int getIntegerScalar(const mxArray *value);
-
-  static bool isLogicalScalar(const mxArray *value);
-  static bool getLogicalScalar(const mxArray *value);
-
-public:
-  Options();
-  Options(int nrhs, const mxArray *prhs[]);
-  virtual ~Options();
-
-  void init(int nrhs, const mxArray *prhs[]);
-
-  bool hasKey(const std::string& key) const;
-
-  const std::string& getString(const std::string& key, const std::string& default_value = std::string());
-  double getDouble(const std::string& key, double default_value = 0);
-  bool getBool(const std::string& key, bool default_value = false);
-
-  Options &set(const std::string& key, const std::string& value);
-  Options &set(const std::string& key, double value);
-  Options &set(const std::string& key, bool value);
-
-  void warnUnused();
-
-private:
-  std::map<std::string,std::string> strings_;
-  std::map<std::string,double> doubles_;
-  std::map<std::string,bool> logicals_;
-
-  std::map<std::string,bool> used_;
+  void write(int nrhs, const mxArray *prhs[]);
 };
 
+} // namespace rosbag
 } // namespace rosmatlab
 
-#endif // ROSMATLAB_OPTIONS_H
+#endif // ROSMATLAB_ROSBAG_BAG_H

@@ -26,58 +26,23 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //=================================================================================================
 
-#ifndef ROSMATLAB_OPTIONS_H
-#define ROSMATLAB_OPTIONS_H
+#include <rosmatlab/mex.h>
+#include <rosmatlab/ros.h>
 
-#include <matrix.h>
-#include <string>
-#include <map>
+#include <ros/time.h>
 
-namespace rosmatlab {
-class Options {
-public:
+using namespace rosmatlab;
 
-  static bool isString(const mxArray *value);
-  static std::string getString(const mxArray *value);
+void mexFunction( int nlhs, mxArray *plhs[],
+                  int nrhs, const mxArray *prhs[] )
+{
+  try {
+    /* Initialize ROS node */
+    init();
 
-  static bool isScalar(const mxArray *value);
+    plhs[0] = mxCreateDoubleScalar(ros::Time::now().toSec());
 
-  static bool isDoubleScalar(const mxArray *value);
-  static double getDoubleScalar(const mxArray *value);
-
-  static bool isIntegerScalar(const mxArray *value);
-  static int getIntegerScalar(const mxArray *value);
-
-  static bool isLogicalScalar(const mxArray *value);
-  static bool getLogicalScalar(const mxArray *value);
-
-public:
-  Options();
-  Options(int nrhs, const mxArray *prhs[]);
-  virtual ~Options();
-
-  void init(int nrhs, const mxArray *prhs[]);
-
-  bool hasKey(const std::string& key) const;
-
-  const std::string& getString(const std::string& key, const std::string& default_value = std::string());
-  double getDouble(const std::string& key, double default_value = 0);
-  bool getBool(const std::string& key, bool default_value = false);
-
-  Options &set(const std::string& key, const std::string& value);
-  Options &set(const std::string& key, double value);
-  Options &set(const std::string& key, bool value);
-
-  void warnUnused();
-
-private:
-  std::map<std::string,std::string> strings_;
-  std::map<std::string,double> doubles_;
-  std::map<std::string,bool> logicals_;
-
-  std::map<std::string,bool> used_;
-};
-
-} // namespace rosmatlab
-
-#endif // ROSMATLAB_OPTIONS_H
+  } catch(rosmatlab::Exception& e) {
+    mexErrMsgTxt(e.what());
+  }
+}

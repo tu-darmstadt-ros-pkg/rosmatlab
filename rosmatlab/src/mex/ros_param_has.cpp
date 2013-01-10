@@ -35,7 +35,9 @@ void mexFunction( int nlhs, mxArray *plhs[],
                   int nrhs, const mxArray *prhs[] )
 {
   try {
+    /* Initialize ROS node */
     init();
+
     param::has(nlhs, plhs, nrhs, prhs);
 
   } catch(Exception& e) {

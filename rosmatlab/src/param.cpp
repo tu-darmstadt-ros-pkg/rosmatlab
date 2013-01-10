@@ -218,13 +218,13 @@ void get(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
       return;
     }
   } catch (ros::InvalidNameException& e) {
-    throw Exception(e.what());
+    throw Exception("ros.param.get", e.what());
   }
 
   // convert parameter value to Matlab
   plhs[0] = toMatlab(value);
   if (!plhs[0]) {
-    throw Exception("Could not convert the parameter value of " + key + " to Matlab (unknown type)");
+    throw Exception("ros.param.get", "Could not convert the parameter value of " + key + " to Matlab (unknown type)");
     plhs[0] = mxCreateDoubleMatrix(0, 0, mxREAL);
     return;
   }
@@ -235,7 +235,7 @@ void get(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 void set(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
   if (nrhs < 2) {
-    throw Exception("ros.param.set needs two input arguments");
+    throw ArgumentException("ros.param.set", 2);
   }
 
   std::string key = Options::getString(prhs[0]);
@@ -243,7 +243,7 @@ void set(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
   // convert parameter value from Matlab
   if (!fromMatlab(prhs[1], value)) {
-    throw Exception("Could not convert the parameter value for " + key + " to a XmlRpcValue");
+    throw Exception("ros.param.set", "Could not convert the parameter value for " + key + " to a XmlRpcValue");
     return;
   }
 
@@ -251,14 +251,14 @@ void set(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   try {
     ros::param::set(key, value);
   } catch (ros::InvalidNameException& e) {
-    throw Exception(e.what());
+    throw Exception("ros.param.set", e.what());
   }
 }
 
 void del(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
   if (nrhs < 1) {
-    throw Exception("ros.param.delete needs an input argument");
+    throw ArgumentException("ros.param.delete", 1);
   }
 
   std::string key = Options::getString(prhs[0]);
@@ -269,7 +269,7 @@ void del(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 void has(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
   if (nrhs < 1) {
-    throw Exception("ros.param.has needs an input argument");
+    throw ArgumentException("ros.param.has", 1);
   }
 
   std::string key = Options::getString(prhs[0]);

@@ -1,11 +1,11 @@
 classdef Subscriber < handle
 
-    properties (SetAccess = private, Hidden = true)
+    properties (SetAccess = private, Hidden, Transient)
         handle = 0
         poll_timer = []
     end
 
-    properties (Dependent = true, SetAccess = private)
+    properties (SetAccess = private, Dependent)
         Topic
         NumPublishers
     end

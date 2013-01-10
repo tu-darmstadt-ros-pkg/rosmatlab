@@ -49,7 +49,7 @@ public:
   ~Publisher();
 
   using ros::Publisher::operator=;
-  bool advertise(int nrhs, const mxArray *prhs[]);
+  mxArray *advertise(int nrhs, const mxArray *prhs[]);
 
   void publish(int nrhs, const mxArray *prhs[]);
 

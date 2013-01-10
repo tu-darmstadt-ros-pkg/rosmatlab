@@ -30,12 +30,28 @@
 #define ROSMATLAB_EXCEPTION_H
 
 #include <stdexcept>
+#include <boost/lexical_cast.hpp>
 
 namespace rosmatlab {
 
 class Exception : public std::runtime_error {
 public:
-  Exception(const std::string &arg) : std::runtime_error("[rosmatlab] " + arg) {}
+  static const std::string prefix;
+
+  Exception(const std::runtime_error &other)
+    : std::runtime_error(prefix + other.what()) {}
+  Exception(const std::string &arg)
+    : std::runtime_error(prefix + arg) {}
+  Exception(const std::string &source, const std::string &arg)
+    : std::runtime_error(prefix + source + ": " + arg) {}
+};
+
+class ArgumentException : public Exception {
+public:
+  ArgumentException(const std::string& function, unsigned int min, unsigned int max = 0)
+    : Exception(function + " needs at least " + boost::lexical_cast<std::string>(min) + " argument" + (min > 1 ? "s" : "")) {}
+  ArgumentException(const std::string& function, const std::string& arg)
+    : Exception(function, arg) {}
 };
 
 } // namespace rosmatlab

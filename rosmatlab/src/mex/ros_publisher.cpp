@@ -35,68 +35,23 @@ using namespace rosmatlab;
 void mexFunction( int nlhs, mxArray *plhs[],
                   int nrhs, const mxArray *prhs[] )
 {
+  static MexMethodMap<Publisher> methods;
+  if (!methods.initialize()) {
+    methods
+      .add("advertise", &Publisher::advertise)
+      .add("publish", &Publisher::publish)
+      .add("getTopic", &Publisher::getTopic)
+      .add("getNumSubscribers", &Publisher::getNumSubscribers)
+      .add("isLatched", &Publisher::isLatched)
+      .throwOnUnknown();
+  }
+
   try {
-    if (nrhs < 1) {
-      throw Exception("At least 1 input argument is required");
-    }
-
+    /* Initialize ROS node */
     init();
-    Publisher *publisher = getObject<Publisher>(*prhs++); nrhs--;
-    std::string method;
-    if (nrhs) { method = Options::getString(*prhs++); nrhs--; }
 
-    // construction
-    if (method == "create") {
-      delete publisher;
-      mexPrintf("[rosmatlab] Creating new Publisher object\n");
-      publisher = new Publisher(nrhs, prhs);
-      plhs[0] = publisher->handle();
-      return;
-    }
-
-    // destruction
-    if (method == "delete") {
-      mexPrintf("[rosmatlab] Deleting Publisher object\n");
-      delete publisher;
-      return;
-    }
-
-    if (!publisher) {
-      throw Exception("Publisher instance not found");
-    }
-
-    // subscribe()
-    if (method == "advertise") {
-      plhs[0] = mxCreateLogicalScalar(publisher->advertise(nrhs, prhs));
-      return;
-    }
-
-    // publish()
-    if (method == "publish") {
-      publisher->publish(nrhs, prhs);
-      return;
-    }
-
-    // getTopic()
-    if (method == "getTopic") {
-      plhs[0] = publisher->getTopic();
-      return;
-    }
-
-    // getNumSubscribers()
-    if (method == "getNumSubscribers") {
-      plhs[0] = publisher->getNumSubscribers();
-      return;
-    }
-
-    // isLatched()
-    if (method == "isLatched") {
-      plhs[0] = publisher->isLatched();
-      return;
-    }
-
-    // unknown method exception
-    throw Exception("unknown method '" + method + "'");
+    /* Publisher *publisher = */
+    mexClassHelper<Publisher>(nlhs, plhs, nrhs, prhs, methods);
 
   } catch(Exception &e) {
     mexErrMsgTxt(e.what());

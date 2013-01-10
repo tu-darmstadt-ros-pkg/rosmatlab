@@ -42,8 +42,13 @@
 
 namespace rosmatlab {
 
-Conversion::Conversion(const MessagePtr &message) : message_(message) {}
+Conversion::Conversion(const MessagePtr &message) : message_(message), options_(defaultOptions()) {}
+Conversion::Conversion(const MessagePtr &message, const Options& options) : message_(message), options_(options) {}
 Conversion::~Conversion() {}
+
+Array Conversion::toMatlab() {
+  return toStruct();
+}
 
 Array Conversion::toDoubleMatrix() {
   return toDoubleMatrix(0);
@@ -109,32 +114,65 @@ Array Conversion::toStruct(Array target, std::size_t index) {
     }
   }
 
+  // add meta data to the struct
+  {
+    if (mxGetFieldNumber(target, "DATATYPE") == -1) mxAddField(target, "DATATYPE");
+    mxSetField(target, index, "DATATYPE", mxCreateString(message_->getDataType()));
+    if (mxGetFieldNumber(target, "MD5SUM") == -1) mxAddField(target, "MD5SUM");
+    mxSetField(target, index, "MD5SUM", mxCreateString(message_->getMD5Sum()));
+  }
+
   return target;
+}
+
+std::size_t Conversion::numberOfInstances(ConstArray source)
+{
+  if (mxIsStruct(source)) {
+    return mxGetNumberOfElements(source);
+  }
+
+  if (mxIsDouble(source)) {
+    return mxGetM(source) == 1 ? mxGetN(source) : mxGetM(source);
+  }
+
+  if (mxIsChar(source)) {
+    return 1;
+  }
+
+  throw Exception("Cannot parse an array of class " + std::string(mxGetClassName(source)) + " as ROS message");
 }
 
 MessagePtr Conversion::fromMatlab(ConstArray source, std::size_t index)
 {
-  MessagePtr message = message_->introspect(message_->createInstance());
-  fromMatlab(message, source, index);
-  return message;
+  MessagePtr target = message_->introspect(message_->createInstance());
+  fromMatlab(target, source, index);
+  return target;
 }
 
-void Conversion::fromMatlab(const MessagePtr& message, ConstArray source, std::size_t index)
+void Conversion::fromMatlab(const MessagePtr& target, ConstArray source, std::size_t index)
 {
   if (mxIsStruct(source)) {
-    fromStruct(message, source, index);
+    fromStruct(target, source, index);
     return;
   }
 
   if (mxIsDouble(source)) {
-    fromDoubleMatrix(message, source, index);
+    fromDoubleMatrix(target, source, index);
     return;
   }
 
-  throw Exception("Cannot parse a message of class " + std::string(mxGetClassName(source)) + " as ROS message");
+  if (mxIsChar(source) && target->hasType<std_msgs::String>()) {
+    std_msgs::StringPtr data = target->getInstanceAs<std_msgs::String>();
+    if (data) {
+      data->data = Options::getString(source);
+      return;
+    }
+  }
+
+  throw Exception("Cannot parse an array of class " + std::string(mxGetClassName(source)) + " as " + std::string(target->getDataType()) + " message");
 }
 
-void Conversion::fromDoubleMatrix(const MessagePtr& message, ConstArray source, std::size_t n)
+void Conversion::fromDoubleMatrix(const MessagePtr& target, ConstArray source, std::size_t n)
 {
   if (!mxIsDouble(source)) return;
 
@@ -150,22 +188,23 @@ void Conversion::fromDoubleMatrix(const MessagePtr& message, ConstArray source, 
     end   = mxGetPr(source) + mxGetM(source) * (n + 1);
   }
 
-  fromDoubleMatrix(message, begin, end);
+  fromDoubleMatrix(target, begin, end);
 }
 
-void Conversion::fromDoubleMatrix(const MessagePtr &message, const double *begin, const double *end)
+void Conversion::fromDoubleMatrix(const MessagePtr &target, const double *begin, const double *end)
 {
-  for(Message::const_iterator field = message->begin(); field != message->end(); ++field) {
+  for(Message::const_iterator field = target->begin(); field != target->end(); ++field) {
     begin = convertFromDouble(*field, begin, end);
   }
-  if (begin != end) throw Exception("Failed to parse a message of type " + std::string(message->getDataType()) + ": vector is too long");
+  if (begin != end) throw Exception("Failed to parse an array of type " + std::string(target->getDataType()) + ": vector is too long");
 }
 
-void Conversion::fromStruct(const MessagePtr &message, ConstArray source, std::size_t index)
+void Conversion::fromStruct(const MessagePtr &target, ConstArray source, std::size_t index)
 {
   if (!mxIsStruct(source)) return;
+  if (index >= mxGetNumberOfElements(source)) throw Exception("Index out of bounds");
 
-  for(Message::const_iterator field = message->begin(); field != message->end(); ++field) {
+  for(Message::const_iterator field = target->begin(); field != target->end(); ++field) {
     ConstArray field_source = mxGetField(source, index, (*field)->getName());
     if (!field_source) continue;
     convertFromMatlab(*field, field_source);
@@ -310,6 +349,11 @@ const MessagePtr& Conversion::expanded() {
 //    mexPrintf("Expanded an instance of %s to %u fields", message_->getDataType(), expanded_->size());
   }
   return expanded_;
+}
+
+Options &Conversion::defaultOptions() {
+  static Options default_options_;
+  return default_options_;
 }
 
 }

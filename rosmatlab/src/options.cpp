@@ -33,6 +33,44 @@
 
 namespace rosmatlab {
 
+template <typename T>
+static T getScalar(const mxArray *value)
+{
+  if (value && mxGetNumberOfElements(value) == 1) {
+    switch(mxGetClassID(value)) {
+      case mxSINGLE_CLASS:
+        return *static_cast<float *>(mxGetData(value));
+      case mxDOUBLE_CLASS:
+        return *static_cast<double *>(mxGetData(value));
+      case mxINT8_CLASS:
+        return *static_cast<int8_T *>(mxGetData(value));
+      case mxUINT8_CLASS:
+        return *static_cast<uint8_T *>(mxGetData(value));
+      case mxINT16_CLASS:
+        return *static_cast<int16_T *>(mxGetData(value));
+      case mxUINT16_CLASS:
+        return *static_cast<uint16_T *>(mxGetData(value));
+      case mxINT32_CLASS:
+        return *static_cast<int32_T *>(mxGetData(value));
+      case mxUINT32_CLASS:
+        return *static_cast<uint32_T *>(mxGetData(value));
+      case mxINT64_CLASS:
+        return *static_cast<int64_T *>(mxGetData(value));
+      case mxUINT64_CLASS:
+        return *static_cast<uint64_T *>(mxGetData(value));
+
+      default: break;
+    }
+  }
+
+  return std::numeric_limits<T>::quiet_NaN();
+}
+
+bool Options::isScalar(const mxArray *value)
+{
+  return value && mxGetNumberOfElements(value) == 1;
+}
+
 bool Options::isString(const mxArray *value)
 {
   return value && mxIsChar(value);
@@ -49,13 +87,47 @@ std::string Options::getString(const mxArray *value)
 
 bool Options::isDoubleScalar(const mxArray *value)
 {
-  return value && mxIsDouble(value) && (mxGetNumberOfElements(value) == 1);
+  if (!isScalar(value)) return false;
+
+  switch(mxGetClassID(value)) {
+    case mxSINGLE_CLASS:
+    case mxDOUBLE_CLASS:
+      return true;
+    default: break;
+  }
+
+  return false;
 }
 
 double Options::getDoubleScalar(const mxArray *value)
 {
-  if (!isDoubleScalar(value)) return std::numeric_limits<double>::quiet_NaN();
-  return *mxGetPr(value);
+  return getScalar<double>(value);
+}
+
+bool Options::isIntegerScalar(const mxArray *value)
+{
+  if (!isScalar(value)) return false;
+
+  switch(mxGetClassID(value)) {
+    case mxINT8_CLASS:
+    case mxUINT8_CLASS:
+    case mxINT16_CLASS:
+    case mxUINT16_CLASS:
+    case mxINT32_CLASS:
+    case mxUINT32_CLASS:
+    case mxINT64_CLASS:
+    case mxUINT64_CLASS:
+      return true;
+
+    default: break;
+  }
+
+  return false;
+}
+
+int Options::getIntegerScalar(const mxArray *value)
+{
+  return getScalar<int>(value);
 }
 
 bool Options::isLogicalScalar(const mxArray *value)
@@ -66,11 +138,25 @@ bool Options::isLogicalScalar(const mxArray *value)
 bool Options::getLogicalScalar(const mxArray *value)
 {
   if (isLogicalScalar(value)) return mxIsLogicalScalarTrue(value);
-  if (isDoubleScalar(value)) return getDoubleScalar(value);
+  if (isIntegerScalar(value)) return getIntegerScalar(value);
+  if (isDoubleScalar(value))  return getDoubleScalar(value);
   return false;
 }
 
+Options::Options()
+{
+}
+
 Options::Options(int nrhs, const mxArray *prhs[])
+{
+  init(nrhs, prhs);
+}
+
+Options::~Options()
+{
+}
+
+void Options::init(int nrhs, const mxArray *prhs[])
 {
   if (nrhs % 2 != 0) { nrhs--; prhs++; }
 
@@ -81,10 +167,6 @@ Options::Options(int nrhs, const mxArray *prhs[])
     if (isDoubleScalar(prhs[1])) doubles_[key] = getDoubleScalar(prhs[1]);
     if (isLogicalScalar(prhs[1])) logicals_[key] = getLogicalScalar(prhs[1]);
   }
-}
-
-Options::~Options()
-{
 }
 
 bool Options::hasKey(const std::string& key) const
@@ -112,6 +194,24 @@ bool Options::getBool(const std::string& key, bool default_value)
   if (logicals_.count(key)) return logicals_.at(key);
   if (doubles_.count(key)) return doubles_.at(key);
   return default_value;
+}
+
+Options &Options::set(const std::string& key, const std::string& value)
+{
+  strings_[key] = value;
+  return *this;
+}
+
+Options &Options::set(const std::string& key, double value)
+{
+  doubles_[key] = value;
+  return *this;
+}
+
+Options &Options::set(const std::string& key, bool value)
+{
+  logicals_[key] = value;
+  return *this;
 }
 
 void Options::warnUnused()

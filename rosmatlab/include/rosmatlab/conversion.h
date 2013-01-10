@@ -30,7 +30,9 @@
 #define ROSMATLAB_CONVERSION_H
 
 #include <introspection/forwards.h>
-#include "matrix.h"
+#include <matrix.h>
+
+#include <rosmatlab/options.h>
 
 namespace rosmatlab {
 
@@ -45,9 +47,12 @@ typedef mxArray const *ConstArray;
 class Conversion {
 public:
   Conversion(const MessagePtr &message);
+  Conversion(const MessagePtr &message, const Options& options);
   virtual ~Conversion();
 
-  virtual Array toMatlab() { return toStruct(); }
+  operator void *() const { return reinterpret_cast<void *>(static_cast<bool>(message_)); }
+
+  virtual Array toMatlab();
 
   virtual Array toDoubleMatrix();
   virtual Array toDoubleMatrix(Array target, std::size_t n = 0);
@@ -55,6 +60,7 @@ public:
   virtual Array toStruct();
   virtual Array toStruct(Array target, std::size_t index = 0);
 
+  virtual std::size_t numberOfInstances(ConstArray source);
   virtual MessagePtr fromMatlab(ConstArray source, std::size_t index = 0);
   virtual void fromMatlab(const MessagePtr &message, ConstArray source, std::size_t index = 0);
 
@@ -64,15 +70,23 @@ public:
 
   const MessagePtr& expanded();
 
+  Options &options() { return options_; }
+  const Options &options() const { return options_; }
+  Conversion &setOptions(int nrhs, const mxArray *prhs[]);
+
+  static Options &defaultOptions();
+
 protected:
   Array emptyArray() const;
 
-  virtual void fromDoubleMatrix(const MessagePtr &message, ConstArray source, std::size_t n = 0);
-  virtual void fromDoubleMatrix(const MessagePtr &message, const double *begin, const double *end);
-  virtual void fromStruct(const MessagePtr &message, ConstArray source, std::size_t index = 0);
+  virtual void fromDoubleMatrix(const MessagePtr &target, ConstArray source, std::size_t n = 0);
+  virtual void fromDoubleMatrix(const MessagePtr &target, const double *begin, const double *end);
+  virtual void fromStruct(const MessagePtr &target, ConstArray source, std::size_t index = 0);
 
   MessagePtr message_;
   MessagePtr expanded_;
+
+  Options options_;
 };
 
 }

@@ -35,7 +35,9 @@ void mexFunction( int nlhs, mxArray *plhs[],
                   int nrhs, const mxArray *prhs[] )
 {
   try {
+    /* Initialize ROS node */
     init();
+
     if (nrhs >= 2) {
       param::set(nlhs, plhs, nrhs, prhs);
     } else {

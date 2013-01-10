@@ -1,5 +1,5 @@
 //=================================================================================================
-// Copyright (c) 2012, Johannes Meyer, TU Darmstadt
+// Copyright (c) 2013, Johannes Meyer, TU Darmstadt
 // All rights reserved.
 
 // Redistribution and use in source and binary forms, with or without
@@ -26,58 +26,35 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //=================================================================================================
 
-#ifndef ROSMATLAB_OPTIONS_H
-#define ROSMATLAB_OPTIONS_H
+#include <rosmatlab/mex.h>
+#include <rosmatlab/rosbag/bag.h>
 
-#include <matrix.h>
-#include <string>
-#include <map>
+using namespace rosmatlab;
+using namespace rosmatlab::rosbag;
 
-namespace rosmatlab {
-class Options {
-public:
+void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
+{
+  static MexMethodMap<Bag> methods;
+  if (!methods.initialize()) {
+    methods
+    .add("open",              &Bag::open)
+    .add("close",             &Bag::close)
+    .add("write",             &Bag::write)
+    .add("getFileName",       &Bag::getFileName)
+    .add("getMode",           &Bag::getMode)
+    .add("getMajorVersion",   &Bag::getMajorVersion)
+    .add("getMinorVersion",   &Bag::getMinorVersion)
+    .add("getSize",           &Bag::getSize)
+    .add("setCompression",    &Bag::setCompression)
+    .add("getCompression",    &Bag::getCompression)
+    .add("setChunkThreshold", &Bag::setChunkThreshold)
+    .add("getChunkThreshold", &Bag::getChunkThreshold)
+    .throwOnUnknown();
+  }
 
-  static bool isString(const mxArray *value);
-  static std::string getString(const mxArray *value);
-
-  static bool isScalar(const mxArray *value);
-
-  static bool isDoubleScalar(const mxArray *value);
-  static double getDoubleScalar(const mxArray *value);
-
-  static bool isIntegerScalar(const mxArray *value);
-  static int getIntegerScalar(const mxArray *value);
-
-  static bool isLogicalScalar(const mxArray *value);
-  static bool getLogicalScalar(const mxArray *value);
-
-public:
-  Options();
-  Options(int nrhs, const mxArray *prhs[]);
-  virtual ~Options();
-
-  void init(int nrhs, const mxArray *prhs[]);
-
-  bool hasKey(const std::string& key) const;
-
-  const std::string& getString(const std::string& key, const std::string& default_value = std::string());
-  double getDouble(const std::string& key, double default_value = 0);
-  bool getBool(const std::string& key, bool default_value = false);
-
-  Options &set(const std::string& key, const std::string& value);
-  Options &set(const std::string& key, double value);
-  Options &set(const std::string& key, bool value);
-
-  void warnUnused();
-
-private:
-  std::map<std::string,std::string> strings_;
-  std::map<std::string,double> doubles_;
-  std::map<std::string,bool> logicals_;
-
-  std::map<std::string,bool> used_;
-};
-
-} // namespace rosmatlab
-
-#endif // ROSMATLAB_OPTIONS_H
+  try {
+    mexClassHelper(nlhs, plhs, nrhs, prhs, methods);
+  } catch (Exception& e) {
+    mexErrMsgTxt(e.what());
+  }
+}

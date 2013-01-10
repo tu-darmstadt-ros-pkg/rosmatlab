@@ -49,7 +49,7 @@ public:
   ~Subscriber();
 
   using ros::Subscriber::operator=;
-  bool subscribe(int nrhs, const mxArray *prhs[]);
+  mxArray *subscribe(int nrhs, const mxArray *prhs[]);
   mxArray *poll(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
 
   mxArray *getConnectionHeader() const;

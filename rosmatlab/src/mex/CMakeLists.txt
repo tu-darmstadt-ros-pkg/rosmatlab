@@ -4,8 +4,11 @@ target_link_libraries(ros_init rosmatlab)
 add_mex(ros_shutdown ros_shutdown.cpp OUTPUT_NAME shutdown DESTINATION +ros)
 target_link_libraries(ros_shutdown rosmatlab)
 
-add_mex(ros_now ros_now.cpp OUTPUT_NAME now DESTINATION +ros)
-target_link_libraries(ros_now rosmatlab)
+add_mex(ros_time_now ros_time_now.cpp OUTPUT_NAME now DESTINATION +ros/+Time)
+target_link_libraries(ros_time_now rosmatlab)
+
+add_mex(ros_walltime_now ros_walltime_now.cpp OUTPUT_NAME now DESTINATION +ros/+WallTime)
+target_link_libraries(ros_walltime_now rosmatlab)
 
 add_mex(ros_log ros_log.cpp OUTPUT_NAME log DESTINATION +ros)
 target_link_libraries(ros_log rosmatlab)

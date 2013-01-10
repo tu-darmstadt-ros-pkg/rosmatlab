@@ -35,6 +35,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
                   int nrhs, const mxArray *prhs[] )
 {
   try {
+    /* Initialize ROS node */
     if (!ros::isInitialized()) {
       init();
       mexPrintf("[rosmatlab] Initialized ROS environment, node name is %s\n", ros::this_node::getName().c_str());

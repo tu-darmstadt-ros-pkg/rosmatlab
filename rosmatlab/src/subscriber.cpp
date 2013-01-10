@@ -31,6 +31,7 @@
 #include <rosmatlab/options.h>
 #include <rosmatlab/conversion.h>
 #include <rosmatlab/log.h>
+#include <rosmatlab/connection_header.h>
 
 #include <introspection/message.h>
 
@@ -75,41 +76,41 @@ Subscriber::~Subscriber() {
   shutdown();
 }
 
-bool Subscriber::subscribe(int nrhs, const mxArray *prhs[]) {
+mxArray *Subscriber::subscribe(int nrhs, const mxArray *prhs[]) {
   if (nrhs < 2) {
-    throw Exception("Subscriber: subscribe needs at least two arguments");
+    throw ArgumentException("Subscriber.subscribe", 2);
   }
 
   options_ = ros::SubscribeOptions();
   for(int i = 0; i < nrhs; i++) {
     switch(i) {
       case 0:
-        if (!Options::isString(prhs[i])) throw Exception("Subscriber: need a topic as 1st argument");
+        if (!Options::isString(prhs[i])) throw Exception("Subscriber.subscribe", "need a topic as 1st argument");
         options_.topic = Options::getString(prhs[i]);
         break;
 
       case 1:
-        if (!Options::isString(prhs[i])) throw Exception("Subscriber: need a datatype as 2nd argument");
+        if (!Options::isString(prhs[i])) throw Exception("Subscriber.subscribe", "need a datatype as 2nd argument");
         options_.datatype = Options::getString(prhs[i]);
         break;
 
       case 2:
-        if (!Options::isDoubleScalar(prhs[i])) throw Exception("Subscriber: need a queue size as 3rd argument");
+        if (!Options::isDoubleScalar(prhs[i])) throw Exception("Subscriber.subscribe", "need a queue size as 3rd argument");
         options_.queue_size = Options::getDoubleScalar(prhs[i]);
         break;
 
       default:
-        throw Exception("Subscriber: too many arguments");
+        throw ArgumentException("Subscriber.subscribe", "too many arguments");
     }
   }
 
   introspection_ = cpp_introspection::messageByDataType(options_.datatype);
-  if (!introspection_) throw Exception("Subscriber: unknown datatype '" + options_.datatype + "'");
+  if (!introspection_) throw Exception("Subscriber.subscribe", "unknown datatype '" + options_.datatype + "'");
   options_.md5sum = introspection_->getMD5Sum();
   options_.helper.reset(new SubscriptionCallbackHelper(this));
 
   *this = node_handle_.subscribe(options_);
-  return *this;
+  return mxCreateLogicalScalar(*this);
 }
 
 mxArray *Subscriber::poll(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
@@ -131,15 +132,8 @@ mxArray *Subscriber::poll(int nlhs, mxArray *plhs[], int nrhs, const mxArray *pr
 
 mxArray *Subscriber::getConnectionHeader() const
 {
-  mxArray *header = mxCreateStructMatrix(1, 1, 0, 0);
-  if (!last_event_) return header;
-
-  for(ros::M_string::iterator it = last_event_->getConnectionHeader().begin(); it != last_event_->getConnectionHeader().end(); ++it) {
-    mxAddField(header, it->first.c_str());
-    mxSetField(header, 0, it->first.c_str(), mxCreateString(it->second.c_str()));
-  }
-
-  return header;
+  if (!last_event_) return mxCreateStructMatrix(1, 1, 0, 0);
+  return ConnectionHeader(last_event_->getConnectionHeaderPtr()).toMatlab();
 }
 
 mxArray *Subscriber::getReceiptTime() const

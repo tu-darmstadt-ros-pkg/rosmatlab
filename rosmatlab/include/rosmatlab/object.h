@@ -30,7 +30,10 @@
 #define ROSMATLAB_OBJECT_H
 
 #include <rosmatlab/exception.h>
+#include <rosmatlab/options.h>
+
 #include <boost/shared_ptr.hpp>
+#include <boost/function.hpp>
 #include "mex.h"
 
 #include <stdint.h>
@@ -93,6 +96,8 @@ public:
     return object;
   }
 
+  static const char *getClassName() { return class_name_; }
+
 private:
   boost::shared_ptr<Type> instance_;
   mxArray *handle_;
@@ -110,6 +115,199 @@ Type *getObject(const mxArray *handle) {
   Object<Type> *object = Object<Type>::byHandle(handle);
   if (!object) return 0;
   return object->get();
+}
+
+template <class Type>
+class MexMethodMap {
+private:
+  typedef boost::function<void(Type *, int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])> FunctionType1;
+  typedef boost::function<void(Type *, int nrhs, const mxArray *prhs[])> FunctionType2;
+  typedef boost::function<void(Type *)> FunctionType3;
+  typedef boost::function<mxArray *(Type *, int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])> FunctionType4;
+  typedef boost::function<mxArray *(Type *, int nrhs, const mxArray *prhs[])> FunctionType5;
+  typedef boost::function<mxArray *(Type *)> FunctionType6;
+
+  std::map<std::string,FunctionType1> methods1_;
+  std::map<std::string,FunctionType2> methods2_;
+  std::map<std::string,FunctionType3> methods3_;
+  std::map<std::string,FunctionType4> methods4_;
+  std::map<std::string,FunctionType5> methods5_;
+  std::map<std::string,FunctionType6> methods6_;
+
+  bool initialized_;
+  bool throw_on_unknown_;
+
+public:
+  MexMethodMap() : initialized_(false), throw_on_unknown_(false) {}
+
+  bool initialize() {
+    if (!initialized_) {
+      initialized_ = true;
+      return false;
+    }
+    return true;
+  }
+
+  operator void *() const {
+    return initialized_;
+  }
+
+  MexMethodMap &throwOnUnknown(bool value = true) {
+    throw_on_unknown_ = value;
+    return *this;
+  }
+
+  MexMethodMap &add(const std::string& name, void (Type::*function)(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])) {
+    methods1_[name] = function;
+    return *this;
+  }
+
+  MexMethodMap &add(const std::string& name, void (Type::*function)(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) const) {
+    methods1_[name] = function;
+    return *this;
+  }
+
+  MexMethodMap &add(const std::string& name, void (Type::*function)(int nrhs, const mxArray *prhs[])) {
+    methods2_[name] = function;
+    return *this;
+  }
+
+  MexMethodMap &add(const std::string& name, void (Type::*function)(int nrhs, const mxArray *prhs[]) const) {
+    methods2_[name] = function;
+    return *this;
+  }
+
+  MexMethodMap &add(const std::string& name, void (Type::*function)()) {
+    methods3_[name] = function;
+    return *this;
+  }
+
+  MexMethodMap &add(const std::string& name, void (Type::*function)() const) {
+    methods3_[name] = function;
+    return *this;
+  }
+
+  MexMethodMap &add(const std::string& name, mxArray *(Type::*function)(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])) {
+    methods4_[name] = function;
+    return *this;
+  }
+
+  MexMethodMap &add(const std::string& name, mxArray *(Type::*function)(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) const) {
+    methods4_[name] = function;
+    return *this;
+  }
+
+  MexMethodMap &add(const std::string& name, mxArray *(Type::*function)(int nrhs, const mxArray *prhs[])) {
+    methods5_[name] = function;
+    return *this;
+  }
+
+  MexMethodMap &add(const std::string& name, mxArray *(Type::*function)(int nrhs, const mxArray *prhs[]) const) {
+    methods5_[name] = function;
+    return *this;
+  }
+
+  MexMethodMap &add(const std::string& name, mxArray *(Type::*function)()) {
+    methods6_[name] = function;
+    return *this;
+  }
+
+  MexMethodMap &add(const std::string& name, mxArray *(Type::*function)() const) {
+    methods6_[name] = function;
+    return *this;
+  }
+
+  bool has(const std::string& name) const {
+    bool found = methods1_.count(name) || methods2_.count(name) || methods3_.count(name) || methods4_.count(name) || methods5_.count(name) || methods6_.count(name);
+    return found;
+  }
+
+  bool call(Type *object, const std::string& name, int &nlhs, mxArray **&plhs, int &nrhs, const mxArray **&prhs) const {
+    if (methods1_.count(name)) {
+      methods1_.at(name)(object, nlhs, plhs, nrhs, prhs);
+      return true;
+    }
+
+    if (methods2_.count(name)) {
+      methods2_.at(name)(object, nrhs, prhs);
+      return true;
+    }
+
+    if (methods3_.count(name)) {
+      methods3_.at(name)(object);
+      return true;
+    }
+
+    if (methods4_.count(name)) {
+      plhs[0] = methods4_.at(name)(object, nlhs, plhs, nrhs, prhs);
+      return true;
+    }
+
+    if (methods5_.count(name)) {
+      plhs[0] = methods5_.at(name)(object, nrhs, prhs);
+      return true;
+    }
+
+    if (methods6_.count(name)) {
+      plhs[0] = methods6_.at(name)(object);
+      return true;
+    }
+
+    if (throw_on_unknown_)
+      throw Exception(std::string() + "unknown method '" + name + "' for objects of class " + Object<Type>::getClassName());
+
+    if (has("default")) {
+      return call(object, "default", nlhs, plhs, nrhs, prhs);
+    }
+
+    return false;
+  }
+};
+
+template <class Type>
+Type *mexClassHelper(int &nlhs, mxArray **&plhs, int &nrhs, const mxArray **&prhs, std::string& method, const MexMethodMap<Type>& methods = MexMethodMap<Type>()) {
+  if (nrhs < 1) {
+    throw Exception("At least one input argument for the handle is required");
+  }
+
+  Type *object = getObject<Type>(*prhs++); nrhs--;
+  method.clear();
+  if (nrhs) { method = Options::getString(*prhs++); nrhs--; }
+
+  // construction
+  if (method == "create") {
+    delete object;
+    // mexPrintf("[rosmatlab] Creating new %s object\n", Object<Type>::getClassName().c_str());
+    object = new Type(nrhs, prhs);
+    plhs[0] = object->handle();
+    method.clear();
+    return object;
+  }
+
+  // destruction
+  if (method == "delete") {
+    // mexPrintf("[rosmatlab] Deleting %s object\n", Object<Type>::getClassName().c_str());
+    delete object;
+    return 0;
+  }
+
+  // for all other methods the object must exist
+  if (!object) {
+    throw Exception("Instance not found");
+  }
+
+  // execute method
+  if (methods.call(object, method, nlhs, plhs, nrhs, prhs)) {
+    method.clear();
+  }
+
+  return object;
+}
+
+template <class Type>
+Type *mexClassHelper(int &nlhs, mxArray **&plhs, int &nrhs, const mxArray **&prhs, const MexMethodMap<Type>& methods = MexMethodMap<Type>()) {
+  std::string method;
+  return mexClassHelper(nlhs, plhs, nrhs, prhs, method, methods);
 }
 
 } // namespace rosmatlab

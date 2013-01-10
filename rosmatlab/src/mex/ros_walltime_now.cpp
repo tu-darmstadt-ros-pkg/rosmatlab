@@ -27,8 +27,6 @@
 //=================================================================================================
 
 #include <rosmatlab/mex.h>
-#include <rosmatlab/ros.h>
-
 #include <ros/time.h>
 
 using namespace rosmatlab;
@@ -37,8 +35,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
                   int nrhs, const mxArray *prhs[] )
 {
   try {
-    init();
-    plhs[0] = mxCreateDoubleScalar(ros::Time::now().toSec());
+    plhs[0] = mxCreateDoubleScalar(ros::WallTime::now().toSec());
 
   } catch(rosmatlab::Exception& e) {
     mexErrMsgTxt(e.what());
