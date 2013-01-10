@@ -2,9 +2,6 @@ function setup()
     % Add the installed mex directory to the path
     addpath('@CMAKE_INSTALL_PREFIX@/matlab');
 
-    % Load the package std_msgs
-    std_msgs
-
     % Find packages that export a path for Matlab
     [status, result] = system('rospack plugins --attrib=path rosmatlab');
     if status ~= 0
@@ -32,5 +29,8 @@ function setup()
             end
         end
     end
+
+    % Load the package std_msgs
+    std_msgs
 end
 
