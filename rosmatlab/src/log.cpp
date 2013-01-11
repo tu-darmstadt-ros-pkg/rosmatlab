@@ -67,7 +67,9 @@ void log(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   std::string message;
 
   // parse input arguments
-  if (nrhs == 1) {
+  if (nrhs == 0) {
+    return;
+  } else if (nrhs == 1) {
     message = Options::getString(prhs[0]);
   } else if (nrhs == 2) {
     std::string arg1 = Options::getString(prhs[0]);
@@ -90,7 +92,9 @@ void log(Level level, int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]
   std::string message;
 
   // parse input arguments
-  if (nrhs == 1) {
+  if (nrhs == 0) {
+    return;
+  } else if (nrhs == 1) {
     message = Options::getString(prhs[0]);
   } else if (nrhs == 2) {
     name = Options::getString(prhs[0]);
