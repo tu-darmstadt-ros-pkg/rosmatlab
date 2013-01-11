@@ -5,7 +5,6 @@ classdef View < handle
     end
 
     properties (SetAccess = private, Dependent)
-        Size
         Time
         Topic
         DataType
@@ -13,8 +12,12 @@ classdef View < handle
         MessageDefinition
         ConnectionHeader
         IsLatching
+
+        Size
         Queries
         Connections
+        BeginTime
+        EndTime
     end
 
     properties
@@ -105,6 +108,14 @@ classdef View < handle
 
         function result = get.Connections(obj)
             result = internal(obj, 'getConnections');
+        end
+
+        function result = get.BeginTime(obj)
+            result = internal(obj, 'getBeginTime');
+        end
+
+        function result = get.EndTime(obj)
+            result = internal(obj, 'getEndTime');
         end
 
     end

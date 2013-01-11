@@ -114,7 +114,7 @@ void Publisher::publish(int nrhs, const mxArray *prhs[])
     if (!message) throw Exception("Publisher.publish", "failed to parse message of type " + options_.datatype);
 
 //    m.message = message->getConstInstance();
-////    mexPrintf("Publishing on topic %s...\n", ros::Publisher::getTopic().c_str());
+////    ROSMATLAB_PRINTF("Publishing on topic %s...", ros::Publisher::getTopic().c_str());
 //    ros::TopicManager::instance()->publish(ros::Publisher::getTopic(), boost::bind(&serialize, message), m);
     ros::Publisher::publish(*message);
   }

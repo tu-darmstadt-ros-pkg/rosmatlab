@@ -44,6 +44,8 @@ public:
   void open(int nrhs, const mxArray *prhs[]);
   void close();
 
+  void get(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
+
   mxArray *getFileName()     const;                      //!< Get the filename of the bag
   mxArray *getMode()         const;                      //!< Get the mode the bag is in
   mxArray *getMajorVersion() const;                      //!< Get the major-version of the open bag file

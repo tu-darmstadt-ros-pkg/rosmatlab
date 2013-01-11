@@ -46,7 +46,10 @@ void log(Level level, const char *name, const char *fmt, ...);
 } // namespace log
 } // namespace rosmatlab
 
-#define ROSMATLAB_PRINTF(format, ...) mexPrintf(ROSMATLAB_PRINTF_PREFIX format "\n", __VA_ARGS__)
+#define ROSMATLAB_PRINTF(...) \
+  mexPrintf(ROSMATLAB_PRINTF_PREFIX); \
+  mexPrintf(__VA_ARGS__); \
+  mexPrintf("\n")
 
 #define ROSMATLAB_DEBUG(...) ::rosmatlab::log::log(::rosmatlab::log::Debug, 0, __VA_ARGS__)
 #define ROSMATLAB_INFO(...)  ::rosmatlab::log::log(::rosmatlab::log::Info,  0, __VA_ARGS__)

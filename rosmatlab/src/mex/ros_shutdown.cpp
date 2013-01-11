@@ -35,7 +35,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
   try {
     if (ros::isInitialized()) {
       rosmatlab::shutdown();
-      mexPrintf(ROSMATLAB_PRINTF_PREFIX "ROS node shut down.\n");
+      ROSMATLAB_PRINTF("ROS node shut down.");
     }
   } catch(rosmatlab::Exception& e) {
     mexErrMsgTxt(e.what());

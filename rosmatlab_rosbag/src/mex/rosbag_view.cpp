@@ -53,6 +53,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     .add("isLatching",           &View::isLatching)
     .add("getQueries",           &View::getQueries)
     .add("getConnections",       &View::getConnections)
+    .add("getBeginTime",         &View::getBeginTime)
+    .add("getEndTime",           &View::getEndTime)
     .throwOnUnknown();
   }
 

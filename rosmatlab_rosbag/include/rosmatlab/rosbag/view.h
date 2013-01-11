@@ -37,14 +37,49 @@
 namespace rosmatlab {
 namespace rosbag {
 
-class Query;
+using ::rosbag::MessageInstance;
+using ::rosbag::ConnectionInfo;
+
+class Bag;
+class View;
+
+class Query
+{
+public:
+  Query(int nrhs, const mxArray *prhs[]);
+  Query(const Options& options);
+  Query(const std::string& topic);
+  Query(const Query& other, const std::string& topic);
+  ~Query();
+
+  bool operator()(const ConnectionInfo *info);
+
+  void init(const Options& options);
+
+  const ros::Time &getStartTime() const { return start_time_; }
+  const ros::Time &getEndTime() const { return end_time_; }
+
+  static mxArray *toMatlab(const std::vector<boost::shared_ptr<Query> >&);
+
+private:
+  typedef std::set<std::string> Filter;
+  Filter topics_;
+  Filter datatypes_;
+  Filter md5sums_;
+  ros::Time start_time_;
+  ros::Time end_time_;
+};
+typedef boost::shared_ptr<Query> QueryPtr;
 
 class View : public ::rosbag::View, public Object<View> {
 public:
+  friend class Bag;
+
   using ::rosbag::View::iterator;
   using ::rosbag::View::const_iterator;
 
   View(int nrhs, const mxArray *prhs[]);
+  View(const Bag& bag, int nrhs, const mxArray *prhs[]);
   virtual ~View();
 
   using ::rosbag::View::begin;
@@ -54,11 +89,16 @@ public:
   mxArray *getSize();
 
   void addQuery(int nrhs, const mxArray *prhs[]);
+  void addQuery(const Bag& bag, int nrhs, const mxArray *prhs[]);
+
   void reset();
+  void increment();
+  bool valid();
 
   mxArray *eof();
-  mxArray *get(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
-  mxArray *next(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
+
+  void get(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
+  void next(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
 
   mxArray *getTime();
   mxArray *getTopic();
@@ -71,6 +111,13 @@ public:
 
   mxArray *getQueries();
   mxArray *getConnections();
+  mxArray *getBeginTime();
+  mxArray *getEndTime();
+
+private:
+  iterator& operator*();
+  MessageInstance* operator->();
+  mxArray *getInternal(mxArray *target, std::size_t index = 0, std::size_t size = 0);
 
 private:
   std::vector<boost::shared_ptr<Query> > queries_;

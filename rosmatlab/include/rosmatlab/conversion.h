@@ -34,6 +34,8 @@
 
 #include <rosmatlab/options.h>
 
+#include <ros/time.h>
+
 namespace rosmatlab {
 
 using namespace cpp_introspection;
@@ -53,12 +55,13 @@ public:
   operator void *() const { return reinterpret_cast<void *>(static_cast<bool>(message_)); }
 
   virtual Array toMatlab();
+  virtual Array toMatlab(Array target, std::size_t index = 0, std::size_t size = 0);
 
   virtual Array toDoubleMatrix();
-  virtual Array toDoubleMatrix(Array target, std::size_t n = 0);
+  virtual Array toDoubleMatrix(Array target, std::size_t index = 0, std::size_t size = 0);
 
   virtual Array toStruct();
-  virtual Array toStruct(Array target, std::size_t index = 0);
+  virtual Array toStruct(Array target, std::size_t index = 0, std::size_t size = 0);
 
   virtual std::size_t numberOfInstances(ConstArray source);
   virtual MessagePtr fromMatlab(ConstArray source, std::size_t index = 0);
@@ -88,6 +91,25 @@ protected:
 
   Options options_;
 };
+
+/*
+  Some conversion helpers
+*/
+
+template <typename Time>
+static inline mxArray *mxCreateTime(const Time& time) {
+  if (time == ros::TIME_MIN || time == ros::TIME_MAX) return mxCreateDoubleMatrix(0, 0, mxREAL);
+  return ::mxCreateDoubleScalar(time.toSec());
+}
+
+template <typename Duration>
+static inline mxArray *mxCreateDuration(const Duration& duration) {
+  return ::mxCreateDoubleScalar(duration.toSec());
+}
+
+static inline mxArray *mxCreateString(const std::string& string) {
+  return ::mxCreateString(string.c_str());
+}
 
 }
 

@@ -40,28 +40,6 @@
 namespace rosmatlab {
 namespace rosbag {
 
-using ::rosbag::ConnectionInfo;
-
-class View;
-
-class Query
-{
-public:
-  Query(const Options& options);
-  bool operator()(const ConnectionInfo *info);
-
-  const ros::Time &getStartTime() const { return start_time_; }
-  const ros::Time &getStopTime() const { return stop_time_; }
-
-  static mxArray *toMatlab(const std::vector<boost::shared_ptr<Query> >&);
-
-private:
-  ros::M_string filter_;
-  ros::Time start_time_;
-  ros::Time stop_time_;
-};
-typedef boost::shared_ptr<Query> QueryPtr;
-
 template <> const char *Object<View>::class_name_ = "rosbag.View";
 
 View::View(int nrhs, const mxArray *prhs[])
@@ -71,13 +49,20 @@ View::View(int nrhs, const mxArray *prhs[])
   if (nrhs > 0) addQuery(nrhs, prhs);
 }
 
+View::View(const Bag& bag, int nrhs, const mxArray *prhs[])
+  : Object<View>(this)
+{
+  reset();
+  if (nrhs > 0) addQuery(bag, nrhs, prhs);
+}
+
 View::~View()
 {
 }
 
 mxArray *View::getSize()
 {
-  return mxCreateDoubleScalar(size());
+  return mxCreateDoubleScalar(::rosbag::View::size());
 }
 
 void View::addQuery(int nrhs, const mxArray *prhs[])
@@ -87,10 +72,13 @@ void View::addQuery(int nrhs, const mxArray *prhs[])
   const Bag *bag = getObject<Bag>(prhs[0]);
   if (!bag) throw Exception("View.addQuery", "first argument is not a valid bag handle");
 
-  Options options(nrhs - 1, prhs + 1, true);
-  QueryPtr query(new Query(options));
+  addQuery(*bag, nrhs - 1, prhs + 1);
+}
 
-  ::rosbag::View::addQuery(*bag, *query, query->getStartTime(), query->getStopTime());
+void View::addQuery(const Bag& bag, int nrhs, const mxArray *prhs[])
+{
+  QueryPtr query(new Query(nrhs, prhs));
+  ::rosbag::View::addQuery(bag, *query, query->getStartTime(), query->getEndTime());
   queries_.push_back(query);
 }
 
@@ -105,63 +93,88 @@ mxArray *View::eof()
   return mxCreateLogicalScalar(eof_);
 }
 
-mxArray *View::get(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
+bool View::valid()
 {
-  if (message_instance_) {
-    plhs[0] = Conversion(message_instance_).toMatlab();
-  } else {
-    plhs[0] = mxCreateStructMatrix(0, 0, 0, 0);
-  }
-
-  if (nlhs > 1) plhs[1] = getTopic();
-  if (nlhs > 2) plhs[2] = getDataType();
-  return plhs[0];
+  return current_ != end();
 }
 
-mxArray *View::next(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
+View::iterator& View::operator*()
 {
-  message_instance_.reset();
+  return current_;
+}
 
-  if (!eof_) {
-    // reset current iterator
-    if (current_ == end()) {
-      current_ = begin();
+MessageInstance* View::operator->()
+{
+  return &(*current_);
+}
 
-    // or increment iterator
+void View::get(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
+{
+  plhs[0] = getInternal(plhs[0]);
+  if (nlhs > 1) plhs[1] = getTopic();
+  if (nlhs > 2) plhs[2] = getDataType();
+}
+
+mxArray *View::getInternal(mxArray *target, std::size_t index, std::size_t size)
+{
+  if (!message_instance_ && (current_ != end())) {
+    MessagePtr introspection = messageByMD5Sum(current_->getMD5Sum());
+    if (introspection) {
+      // copy the serialized message to the read buffer (ugly)
+      std::size_t size = current_->size();
+      if (read_buffer_.size() < size) read_buffer_.resize(size);
+      ros::serialization::OStream ostream(read_buffer_.data(), read_buffer_.size());
+      current_->write(ostream);
+
+      // deserialize message
+      ros::serialization::IStream istream(read_buffer_.data(), size);
+      VoidPtr msg = introspection->deserialize(istream);
+      if (!msg) ROSMATLAB_WARN("deserialization of a message of type %s failed", current_->getDataType().c_str());
+
+      message_instance_ = introspection->introspect(msg);
     } else {
-      current_++;
+      ROSMATLAB_PRINTF("Unknown data type '%s' in bag file", current_->getDataType().c_str());
+      // throw UnknownDataTypeException(current_->getDataType());
     }
-
-    if (current_ != end()) {
-      MessagePtr introspection = messageByMD5Sum(current_->getMD5Sum());
-      if (introspection) {
-        // copy the serialized message to the read buffer (ugly)
-        std::size_t size = current_->size();
-        if (read_buffer_.size() < size) read_buffer_.resize(size);
-        ros::serialization::OStream ostream(read_buffer_.data(), read_buffer_.size());
-        current_->write(ostream);
-
-        // deserialize message
-        ros::serialization::IStream istream(read_buffer_.data(), size);
-        VoidPtr msg = introspection->deserialize(istream);
-        if (!msg) ROSMATLAB_WARN("deserialization of a message of type %s failed", current_->getDataType().c_str());
-
-        message_instance_ = introspection->introspect(msg);
-      } else {
-        mexPrintf(ROSMATLAB_PRINTF_PREFIX "Unknown data type '%s' in bag file\n", current_->getDataType().c_str());
-        // throw UnknownDataTypeException(current_->getDataType());
-      }
-    } else
-      eof_ = true;
   }
 
-  return get(nlhs, plhs, nrhs, prhs);
+  if (message_instance_) {
+    target = Conversion(message_instance_).toMatlab(target, index, size);
+
+  } else {
+    target = mxCreateStructMatrix(0, 0, 0, 0);
+  }
+
+  return target;
+}
+
+void View::next(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
+{
+  increment();
+  if (nlhs > 0)
+    get(nlhs, plhs, nrhs, prhs);
+}
+
+void View::increment() {
+  message_instance_.reset();
+  if (eof_) return;
+
+  // reset current iterator
+  if (current_ == end()) {
+    current_ = begin();
+
+  // or increment iterator
+  } else {
+    current_++;
+  }
+
+  if (current_ == end()) eof_ = true;
 }
 
 mxArray *View::getTime()
 {
   if (current_ == end()) return mxCreateDoubleMatrix(0, 0, mxREAL);
-  return mxCreateDoubleScalar(current_->getTime().toSec());
+  return mxCreateTime(current_->getTime());
 }
 
 mxArray *View::getTopic()
@@ -229,37 +242,110 @@ mxArray *View::getConnections()
   return result;
 }
 
-Query::Query(const Options &options)
-  : filter_(options.strings())
-  , start_time_(ros::TIME_MIN)
-  , stop_time_(ros::TIME_MAX)
+mxArray *View::getBeginTime()
 {
-  if (options.hasKey("start")) start_time_ = ros::Time(options.getDouble("start"));
-  if (options.hasKey("stop"))  stop_time_  = ros::Time(options.getDouble("stop"));
-  options.getString("topic"); // mark as used
-  options.getString("datatype"); // mark as used
-  options.getString("md5sum"); // mark as used
+  return mxCreateTime(::rosbag::View::getBeginTime());
+}
+
+mxArray *View::getEndTime()
+{
+  return mxCreateTime(::rosbag::View::getEndTime());
+}
+
+Query::Query(int nrhs, const mxArray *prhs[])
+  : start_time_(ros::TIME_MIN)
+  , end_time_(ros::TIME_MAX)
+{
+  init(Options(nrhs, prhs, true));
+}
+
+Query::Query(const Options &options)
+  : start_time_(ros::TIME_MIN)
+  , end_time_(ros::TIME_MAX)
+{
+  init(options);
+}
+
+Query::Query(const std::string &topic)
+  : start_time_(ros::TIME_MIN)
+  , end_time_(ros::TIME_MAX)
+{
+  topics_.insert(topic);
+}
+
+Query::Query(const Query &other, const std::string &topic)
+  : topics_(other.topics_)
+  , datatypes_(other.datatypes_)
+  , md5sums_(other.md5sums_)
+  , start_time_(other.start_time_)
+  , end_time_(other.end_time_)
+{
+  if (!topic.empty()) {
+    topics_.clear();
+    topics_.insert(topic);
+  }
+}
+
+Query::~Query()
+{
+}
+
+void Query::init(const Options &options)
+{
+  if (options.hasKey("start"))    start_time_ = ros::Time(options.getDouble("start"));
+  if (options.hasKey("stop"))     end_time_   = ros::Time(options.getDouble("stop"));
+  if (options.hasKey("topic"))    topics_.insert(options.getStrings("topic").begin(), options.getStrings("topic").end());
+  if (options.hasKey("datatype")) datatypes_.insert(options.getStrings("datatype").begin(), options.getStrings("datatype").end());
+  if (options.hasKey("md5sum"))   md5sums_.insert(options.getStrings("md5sum").begin(), options.getStrings("md5sum").end());
+
+  // default option are topics
+  if (options.hasKey(""))         topics_.insert(options.getStrings("").begin(), options.getStrings("").end());
+
   options.warnUnused();
 }
 
 bool Query::operator ()(const ConnectionInfo *info)
 {
-  if (filter_.count("topic")    && info->topic    != filter_["topic"])    return false;
-  if (filter_.count("datatype") && info->datatype != filter_["datatype"]) return false;
-  if (filter_.count("md5sum")   && info->md5sum   != filter_["md5sum"])   return false;
+  if (topics_.size() > 0    && topics_.count(info->topic) == 0) return false;
+  if (datatypes_.size() > 0 && datatypes_.count(info->datatype) == 0) return false;
+  if (md5sums_.size() > 0   && md5sums_.count(info->md5sum) == 0) return false;
   return true;
 }
 
 mxArray *Query::toMatlab(const std::vector<boost::shared_ptr<Query> > &queries) {
   mxArray *result;
-  static const char *fieldnames[] = { "Topic", "DataType", "MD5Sum", "StartTime", "StopTime" };
+  static const char *fieldnames[] = { "Topic", "DataType", "MD5Sum", "StartTime", "EndTime" };
   result = mxCreateStructMatrix(queries.size(), 1, 5, fieldnames);
 
   for(mwIndex i = 0; i < queries.size(); ++i) {
     const Query &query = *queries[i];
-    if (query.filter_.count("topic"))    mxSetField(result, i, "Topic", mxCreateString(query.filter_.at("topic").c_str()));
-    if (query.filter_.count("datatype")) mxSetField(result, i, "Topic", mxCreateString(query.filter_.at("topic").c_str()));
-    if (query.filter_.count("topic"))    mxSetField(result, i, "Topic", mxCreateString(query.filter_.at("topic").c_str()));
+
+    {
+      mxArray *cell = mxCreateCellMatrix(1, query.topics_.size());
+      mwIndex j = 0;
+      for(Filter::const_iterator it = query.topics_.begin(); it != query.topics_.end(); ++it)
+        mxSetCell(cell, j++, mxCreateString(it->c_str()));
+      mxSetField(result, i, "Topic", cell);
+    }
+
+    {
+      mxArray *cell = mxCreateCellMatrix(1, query.datatypes_.size());
+      mwIndex j = 0;
+      for(Filter::const_iterator it = query.datatypes_.begin(); it != query.datatypes_.end(); ++it)
+        mxSetCell(cell, j++, mxCreateString(it->c_str()));
+      mxSetField(result, i, "DataType", cell);
+    }
+
+    {
+      mxArray *cell = mxCreateCellMatrix(1, query.md5sums_.size());
+      mwIndex j = 0;
+      for(Filter::const_iterator it = query.md5sums_.begin(); it != query.md5sums_.end(); ++it)
+        mxSetCell(cell, j++, mxCreateString(it->c_str()));
+      mxSetField(result, i, "MD5Sum", cell);
+    }
+
+    mxSetField(result, i, "StartTime", mxCreateTime(query.getStartTime()));
+    mxSetField(result, i, "EndTime",   mxCreateTime(query.getEndTime()));
   }
 
   return result;

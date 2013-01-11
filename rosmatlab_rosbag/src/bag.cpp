@@ -29,8 +29,12 @@
 #include <rosmatlab/rosbag/bag.h>
 #include <rosmatlab/conversion.h>
 #include <rosmatlab/connection_header.h>
+#include <rosmatlab/log.h>
+
+#include <rosmatlab/rosbag/view.h>
 
 #include <introspection/message.h>
+#include <boost/algorithm/string/replace.hpp>
 
 namespace rosmatlab {
 namespace rosbag {
@@ -73,6 +77,67 @@ void Bag::open(int nrhs, const mxArray *prhs[])
 void Bag::close()
 {
   ::rosbag::Bag::close();
+}
+
+namespace {
+  struct FieldInfo {
+    std::string topic;
+    std::string name;
+    int fieldnum;
+    std::size_t index;
+    std::size_t size;
+  };
+}
+
+void Bag::get(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
+{
+  View view(*this, nrhs, prhs);
+  std::vector<const ConnectionInfo *> connections = static_cast< ::rosbag::View& >(view).getConnections();
+
+  // extract topic information from Connections
+  std::map<std::string, FieldInfo> topics;
+  std::vector<const char *> fieldnames;
+  fieldnames.reserve(connections.size());
+
+  for(std::vector<const ConnectionInfo *>::iterator it = connections.begin(); it != connections.end(); ++it) {
+    const ConnectionInfo *c = *it;
+    FieldInfo field;
+    field.topic = c->topic;
+    field.name = c->topic;
+    boost::algorithm::replace_all(field.name, "/", "_");
+    if (field.name.at(0) == '_') field.name = field.name.substr(1);
+    fieldnames.push_back(field.name.c_str());
+    field.fieldnum = topics.size();
+    field.index = 0;
+    field.size = 0;
+    topics[c->topic] = field;
+  }
+
+  // create result struct
+  mxArray *data = mxCreateStructMatrix(1, 1, fieldnames.size(), fieldnames.data());
+
+  // iterate through View
+  view.increment(); // go to first entry
+  for( ; view.valid(); view.increment()) {
+    if (!topics.count(view->getTopic())) continue;
+    FieldInfo &field = topics[view->getTopic()];
+    mxArray *target = mxGetFieldByNumber(data, 0, field.fieldnum);
+
+    if (!target) {
+      // find out how many messages are in the bag file
+      Query only_this_topic(*(view.queries_.front()), view->getTopic());
+      field.size = ::rosbag::View(*this, only_this_topic, only_this_topic.getStartTime(), only_this_topic.getEndTime()).size();
+      // ROSMATLAB_PRINTF("Field %s has %u entries.", field.name.c_str(), field.size);
+    }
+
+    assert(field.index < field.size);
+    // ROSMATLAB_PRINTF("Converting entry %u/%u of field %s", field.index, field.size, field.name.c_str());
+    target = view.getInternal(target, field.index++, field.size);
+    mxSetFieldByNumber(data, 0, field.fieldnum, target);
+  }
+
+  // return result
+  plhs[0] = data;
 }
 
 mxArray *Bag::getFileName() const

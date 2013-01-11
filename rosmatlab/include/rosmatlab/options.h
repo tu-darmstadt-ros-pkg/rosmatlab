@@ -32,6 +32,7 @@
 #include <matrix.h>
 #include <string>
 #include <map>
+#include <vector>
 
 namespace rosmatlab {
 class Options {
@@ -52,6 +53,14 @@ public:
   static bool getLogicalScalar(const mxArray *value);
 
 public:
+  typedef std::vector<std::string> Strings;
+  typedef std::map<std::string, Strings> StringMap;
+  typedef std::vector<double> Doubles;
+  typedef std::map<std::string, Doubles> DoubleMap;
+  typedef std::vector<bool> Bools;
+  typedef std::map<std::string, Bools> BoolMap;
+
+public:
   Options();
   Options(int nrhs, const mxArray *prhs[], bool lowerCaseKeys = false);
   virtual ~Options();
@@ -61,23 +70,27 @@ public:
   bool hasKey(const std::string& key) const;
 
   const std::string& getString(const std::string& key, const std::string& default_value = std::string()) const;
+  const Strings& getStrings(const std::string& key) const;
   double getDouble(const std::string& key, double default_value = 0) const;
+  const Doubles& getDoubles(const std::string& key) const;
   bool getBool(const std::string& key, bool default_value = false) const;
+  const Bools& getBools(const std::string& key) const;
 
+  Options &set(const std::string &key, const mxArray *value);
   Options &set(const std::string& key, const std::string& value);
   Options &set(const std::string& key, double value);
   Options &set(const std::string& key, bool value);
 
   void warnUnused() const;
 
-  const std::map<std::string,std::string>& strings() const { return strings_; }
-  const std::map<std::string,double>& doubles() const { return doubles_; }
-  const std::map<std::string,bool>& logicals() const { return logicals_; }
+  const StringMap& strings() const { return strings_; }
+  const DoubleMap& doubles() const { return doubles_; }
+  const BoolMap& bools() const { return bools_; }
 
 private:
-  std::map<std::string,std::string> strings_;
-  std::map<std::string,double> doubles_;
-  std::map<std::string,bool> logicals_;
+  StringMap strings_;
+  DoubleMap doubles_;
+  BoolMap bools_;
 
   mutable std::map<std::string,bool> used_;
 };

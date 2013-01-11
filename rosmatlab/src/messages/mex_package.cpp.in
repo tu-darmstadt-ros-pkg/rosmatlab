@@ -44,12 +44,12 @@ namespace @package@ {
     PackagePtr package = cpp_introspection::package("@package@");
     if (package)
     {
-      mexPrintf(ROSMATLAB_PRINTF_PREFIX "Package @package@ already loaded.\n");
+      ROSMATLAB_PRINTF("Package @package@ already loaded.");
       return package;
     }
 
     package = cpp_introspection::@package@::Instance();
-    mexPrintf(ROSMATLAB_PRINTF_PREFIX "Loaded package @package@.\n");
+    ROSMATLAB_PRINTF("Loaded package @package@.");
 
     return package;
   }

@@ -45,7 +45,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   MessagePtr message = messageByDataType("@package@/@msg@");
 
   if (!message) {
-    mexPrintf(ROSMATLAB_PRINTF_PREFIX "Message @package@/@msg@ is unknown.\n");
+    ROSMATLAB_PRINTF("Message @package@/@msg@ is unknown.");
     return;
   }
 

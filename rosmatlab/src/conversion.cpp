@@ -28,6 +28,7 @@
 
 #include <rosmatlab/conversion.h>
 #include <rosmatlab/exception.h>
+#include <rosmatlab/log.h>
 
 #include <introspection/message.h>
 #include <introspection/type.h>
@@ -47,26 +48,30 @@ Conversion::Conversion(const MessagePtr &message, const Options& options) : mess
 Conversion::~Conversion() {}
 
 Array Conversion::toMatlab() {
-  return toStruct();
+  return toMatlab(0);
+}
+
+Array Conversion::toMatlab(Array target, std::size_t index, std::size_t size) {
+  return toStruct(target, index, size);
 }
 
 Array Conversion::toDoubleMatrix() {
   return toDoubleMatrix(0);
 }
 
-Array Conversion::toDoubleMatrix(Array target, std::size_t n) {
+Array Conversion::toDoubleMatrix(Array target, std::size_t index, std::size_t size) {
   std::size_t m = 0;
-  if (!target) target = mxCreateDoubleMatrix(expanded()->size(), n + 1, mxREAL);
+  if (!target) target = mxCreateDoubleMatrix(expanded()->size(), size > 0 ? size : index + 1, mxREAL);
 
   bool do_realloc = false;
   if (mxGetM(target) < expanded()->size()) { mxSetM(target, expanded()->size()); do_realloc = true; }
-  if (mxGetN(target) < n + 1) { mxSetN(target, n + 1); do_realloc = true; }
+  if (mxGetN(target) < index + 1) { mxSetN(target, index + 1); do_realloc = true; }
   if (do_realloc)
   {
     mxSetData(target, mxRealloc(mxGetData(target), mxGetN(target) * mxGetN(target) * sizeof(double)));
   }
 
-  double *data = mxGetPr(target) + mxGetM(target) * n;
+  double *data = mxGetPr(target) + mxGetM(target) * index;
   for(Message::const_iterator field = expanded()->begin(); field != expanded()->end(); ++field) {
     if (!(*field)->getType()->isNumeric()) continue;
     *data++ = (*field)->getType()->as_double((*field)->get());
@@ -78,10 +83,22 @@ Array Conversion::toStruct() {
   return toStruct(0);
 }
 
-Array Conversion::toStruct(Array target, std::size_t index) {
-//  mexPrintf("Constructing message %s (%s)...\n", message_->getName(), message_->getDataType());
-  if (!target) target = mxCreateStructMatrix(1, index + 1, message_->getFieldNames().size(), const_cast<const char **>(message_->getFieldNames().data()));
+Array Conversion::toStruct(Array target, std::size_t index, std::size_t size) {
+//  ROSMATLAB_PRINTF("Constructing message %s (%s)...", message_->getName(), message_->getDataType());
 
+  if (!target) target = mxCreateStructMatrix(1, size > 0 ? size : index + 1,
+                                             message_->getFieldNames().size(),
+                                             const_cast<const char **>(message_->getFieldNames().data())
+                                             );
+
+  // add fields if number of fields is 0
+  if (mxGetNumberOfFields(target) == 0) {
+    for(V_FieldName::const_iterator it = message_->getFieldNames().begin(); it != message_->getFieldNames().end(); ++it) {
+      mxAddField(target, *it);
+    }
+  }
+
+  // iterate through all fields
   for(Message::const_iterator field = message_->begin(); field != message_->end(); ++field) {
     const char *field_name = (*field)->getName();
 
@@ -93,12 +110,12 @@ Array Conversion::toStruct(Array target, std::size_t index) {
 
         // iterate over array
         for(std::size_t j = 0; j < (*field)->size(); j++) {
-//          mexPrintf("Expanding field %s[%u] (%s)... %u\n", (*field)->getName(), j, (*field)->getDataType());
+//          ROSMATLAB_PRINTF("Expanding field %s[%u] (%s)... %u", (*field)->getName(), j, (*field)->getDataType());
           MessagePtr expanded = (*field)->expand(j);
           if (expanded) {
             Conversion(expanded).toStruct(child, j);
           } else {
-            mexPrintf("Error during expansion of %s[%u] (%s)... %u\n", (*field)->getName(), j, (*field)->getDataType());
+            ROSMATLAB_PRINTF("Error during expansion of %s[%u] (%s)... %u", (*field)->getName(), j, (*field)->getDataType());
           }
         }
 
@@ -215,7 +232,7 @@ Array Conversion::convertToMatlab(const FieldPtr& field) {
   Array target = 0;
   TypePtr field_type = field->getType();
 
-//  mexPrintf("Constructing field %s (%s)...\n", field->getName(), field->getDataType());
+//  ROSMATLAB_PRINTF("Constructing field %s (%s)...", field->getName(), field->getDataType());
   try {
     if (field_type->isString()) {
       if (field->isArray()) {
@@ -229,7 +246,7 @@ Array Conversion::convertToMatlab(const FieldPtr& field) {
       return target;
     }
 
-//    mexPrintf("Constructing double vector with dimension %u for field %s\n", unsigned(field->size()), field->getName());
+//    ROSMATLAB_PRINTF("Constructing double vector with dimension %u for field %s", unsigned(field->size()), field->getName());
     target = mxCreateDoubleMatrix(1, field->size(), mxREAL);
     double *x = mxGetPr(target);
 
@@ -238,7 +255,7 @@ Array Conversion::convertToMatlab(const FieldPtr& field) {
     }
 
   } catch(boost::bad_any_cast &e) {
-    mexPrintf("Catched bad_any_cast exception for field %s: %s", field->getName(), e.what());
+    ROSMATLAB_PRINTF("Catched bad_any_cast exception for field %s: %s", field->getName(), e.what());
     target = emptyArray();
   }
 
@@ -262,12 +279,12 @@ void Conversion::convertFromMatlab(const FieldPtr &field, ConstArray source) {
 
     // iterate over array
     for(std::size_t i = 0; i < field_size; i++) {
-//     mexPrintf("Expanding field %s[%u] (%s)... %u\n", field->getName(), i, field->getDataType());
+//     ROSMATLAB_PRINTF("Expanding field %s[%u] (%s)... %u", field->getName(), i, field->getDataType());
       MessagePtr expanded = field->expand(i);
       if (expanded) {
         child_conversion.fromMatlab(expanded, source, i);
       } else {
-        mexPrintf("Error during expansion of %s[%u] (%s)... %u\n", field->getName(), i, field->getDataType());
+        ROSMATLAB_PRINTF("Error during expansion of %s[%u] (%s)... %u", field->getName(), i, field->getDataType());
       }
     }
 
@@ -346,7 +363,7 @@ Array Conversion::emptyArray() const {
 const MessagePtr& Conversion::expanded() {
   if (!expanded_) {
     expanded_ = expand(message_);
-//    mexPrintf("Expanded an instance of %s to %u fields", message_->getDataType(), expanded_->size());
+//    ROSMATLAB_PRINTF("Expanded an instance of %s to %u fields", message_->getDataType(), expanded_->size());
   }
   return expanded_;
 }
