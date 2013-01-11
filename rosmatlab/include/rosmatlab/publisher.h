@@ -54,6 +54,9 @@ public:
   void publish(int nrhs, const mxArray *prhs[]);
 
   mxArray *getTopic() const;
+  mxArray *getDataType() const;
+  mxArray *getMD5Sum() const;
+
   mxArray *getNumSubscribers() const;
   mxArray *isLatched() const;
 
@@ -61,7 +64,7 @@ private:
   ros::NodeHandle node_handle_;
   ros::AdvertiseOptions options_;
 
-  MessagePtr introspection_;
+  cpp_introspection::MessagePtr introspection_;
 };
 
 } // namespace rosmatlab

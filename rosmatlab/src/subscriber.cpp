@@ -127,12 +127,15 @@ mxArray *Subscriber::poll(int nlhs, mxArray *plhs[], int nrhs, const mxArray *pr
 
   plhs[0] = Conversion(introspect(new_event_->getConstMessage())).toMatlab();
   last_event_.swap(new_event_);
+
+  if (nlhs > 1) plhs[1] = getConnectionHeader();
+  if (nlhs > 2) plhs[2] = getReceiptTime();
   return plhs[0];
 }
 
 mxArray *Subscriber::getConnectionHeader() const
 {
-  if (!last_event_) return mxCreateStructMatrix(1, 1, 0, 0);
+  if (!last_event_) return mxCreateStructMatrix(0, 0, 0, 0);
   return ConnectionHeader(last_event_->getConnectionHeaderPtr()).toMatlab();
 }
 
@@ -147,6 +150,18 @@ mxArray *Subscriber::getReceiptTime() const
 mxArray *Subscriber::getTopic() const
 {
   return mxCreateString(ros::Subscriber::getTopic().c_str());
+}
+
+mxArray *Subscriber::getDataType() const
+{
+  if (!introspection_) return mxCreateString(0);
+  return mxCreateString(introspection_->getDataType());
+}
+
+mxArray *Subscriber::getMD5Sum() const
+{
+  if (!introspection_) return mxCreateString(0);
+  return mxCreateString(introspection_->getMD5Sum());
 }
 
 mxArray *Subscriber::getNumPublishers() const

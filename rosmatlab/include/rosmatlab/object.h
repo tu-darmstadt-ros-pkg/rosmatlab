@@ -82,15 +82,18 @@ public:
   static Object<Type> *byHandle(const mxArray *handle) {
     const mxArray *ptr = 0;
     if (!handle) return 0;
-    // mexPrintf("Searching for object of type %s (class %s)...\n", typeid(Type).name(), mxGetClassName(handle));
+    // mexPrintf(ROSMATLAB_PRINTF_PREFIX "Searching for object of type %s (%s)...\n", getClassName(), typeid(Type).name());
     if (mxIsClass(handle, class_name_)) {
+      // mexPrintf(ROSMATLAB_PRINTF_PREFIX "Handle is a %s class\n", mxGetClassName(handle));
       ptr = mxGetProperty(handle, 0, "handle");
     } else if (mxIsStruct(handle)) {
+      // mexPrintf(ROSMATLAB_PRINTF_PREFIX "Handle is a struct\n");
       ptr = mxGetField(handle, 0, "handle");
     } else if (mxIsDouble(handle)) {
+      // mexPrintf(ROSMATLAB_PRINTF_PREFIX "Handle is a double\n");
       ptr = handle;
     }
-    if (!ptr || !mxIsDouble(ptr) || !mxGetNumberOfElements(ptr) > 0 || !mxGetPr(ptr)) throw Exception("invalid handle");
+    if (!ptr || !mxIsDouble(ptr) || !(mxGetNumberOfElements(ptr) > 0) || !mxGetPr(ptr)) throw Exception("invalid handle");
 
     Object<Type> *object = reinterpret_cast<Object<Type> *>(static_cast<uint64_t>(*mxGetPr(ptr)));
     return object;
@@ -267,7 +270,7 @@ public:
 template <class Type>
 Type *mexClassHelper(int &nlhs, mxArray **&plhs, int &nrhs, const mxArray **&prhs, std::string& method, const MexMethodMap<Type>& methods = MexMethodMap<Type>()) {
   if (nrhs < 1) {
-    throw Exception("At least one input argument for the handle is required");
+    throw ArgumentException(1);
   }
 
   Type *object = getObject<Type>(*prhs++); nrhs--;
@@ -277,7 +280,7 @@ Type *mexClassHelper(int &nlhs, mxArray **&plhs, int &nrhs, const mxArray **&prh
   // construction
   if (method == "create") {
     delete object;
-    // mexPrintf("[rosmatlab] Creating new %s object\n", Object<Type>::getClassName().c_str());
+    // mexPrintf(ROSMATLAB_PRINTF_PREFIX "Creating new %s object\n", Object<Type>::getClassName().c_str());
     object = new Type(nrhs, prhs);
     plhs[0] = object->handle();
     method.clear();
@@ -286,7 +289,7 @@ Type *mexClassHelper(int &nlhs, mxArray **&plhs, int &nrhs, const mxArray **&prh
 
   // destruction
   if (method == "delete") {
-    // mexPrintf("[rosmatlab] Deleting %s object\n", Object<Type>::getClassName().c_str());
+    // mexPrintf(ROSMATLAB_PRINTF_PREFIX "Deleting %s object\n", Object<Type>::getClassName().c_str());
     delete object;
     return 0;
   }

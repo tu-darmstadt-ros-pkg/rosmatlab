@@ -26,6 +26,8 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //=================================================================================================
 
+#include <rosmatlab/log.h>
+
 #include <introspection/introspection.h>
 #include "introspection/@package@/package.h"
 #include "mex.h"
@@ -42,12 +44,12 @@ namespace @package@ {
     PackagePtr package = cpp_introspection::package("@package@");
     if (package)
     {
-      mexPrintf("[rosmatlab] Package @package@ already loaded.\n");
+      mexPrintf(ROSMATLAB_PRINTF_PREFIX "Package @package@ already loaded.\n");
       return package;
     }
 
     package = cpp_introspection::@package@::Instance();
-    mexPrintf("[rosmatlab] Loaded package @package@.\n");
+    mexPrintf(ROSMATLAB_PRINTF_PREFIX "Loaded package @package@.\n");
 
     return package;
   }

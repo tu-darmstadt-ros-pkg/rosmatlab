@@ -53,29 +53,33 @@ public:
 
 public:
   Options();
-  Options(int nrhs, const mxArray *prhs[]);
+  Options(int nrhs, const mxArray *prhs[], bool lowerCaseKeys = false);
   virtual ~Options();
 
-  void init(int nrhs, const mxArray *prhs[]);
+  void init(int nrhs, const mxArray *prhs[], bool lowerCaseKeys = false);
 
   bool hasKey(const std::string& key) const;
 
-  const std::string& getString(const std::string& key, const std::string& default_value = std::string());
-  double getDouble(const std::string& key, double default_value = 0);
-  bool getBool(const std::string& key, bool default_value = false);
+  const std::string& getString(const std::string& key, const std::string& default_value = std::string()) const;
+  double getDouble(const std::string& key, double default_value = 0) const;
+  bool getBool(const std::string& key, bool default_value = false) const;
 
   Options &set(const std::string& key, const std::string& value);
   Options &set(const std::string& key, double value);
   Options &set(const std::string& key, bool value);
 
-  void warnUnused();
+  void warnUnused() const;
+
+  const std::map<std::string,std::string>& strings() const { return strings_; }
+  const std::map<std::string,double>& doubles() const { return doubles_; }
+  const std::map<std::string,bool>& logicals() const { return logicals_; }
 
 private:
   std::map<std::string,std::string> strings_;
   std::map<std::string,double> doubles_;
   std::map<std::string,bool> logicals_;
 
-  std::map<std::string,bool> used_;
+  mutable std::map<std::string,bool> used_;
 };
 
 } // namespace rosmatlab

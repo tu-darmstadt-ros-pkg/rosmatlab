@@ -53,7 +53,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   }
 
   try {
-    mexClassHelper(nlhs, plhs, nrhs, prhs, methods);
+    mexClassHelper<Bag>(nlhs, plhs, nrhs, prhs, methods);
   } catch (Exception& e) {
     mexErrMsgTxt(e.what());
   }

@@ -42,6 +42,8 @@ void mexFunction( int nlhs, mxArray *plhs[],
       .add("subscribe", &Subscriber::subscribe)
       .add("poll", &Subscriber::poll)
       .add("getTopic", &Subscriber::getTopic)
+      .add("getDataType", &Subscriber::getDataType)
+      .add("getMD5Sum", &Subscriber::getMD5Sum)
       .add("getNumPublishers", &Subscriber::getNumPublishers)
       .add("getConnectionHeader", &Subscriber::getConnectionHeader)
       .add("getReceiptTime", &Subscriber::getReceiptTime)

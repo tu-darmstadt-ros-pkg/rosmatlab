@@ -4,12 +4,17 @@ classdef Publisher < handle
         handle = 0
     end
 
-    properties (SetAccess = private, Dependent)
-        Topic
-        NumSubscribers
-        Latched
+    properties (SetAccess = private)
+        Topic = ''
+        DataType = ''
+        MD5Sum = ''
+        Latched = false
     end
-    
+
+    properties (SetAccess = private, Dependent)
+        NumSubscribers
+    end
+
     properties
         UserData
     end
@@ -17,6 +22,11 @@ classdef Publisher < handle
     methods
         function obj = Publisher(varargin)
             obj.handle = internal(obj, 'create', varargin{:});
+
+            obj.Topic    = internal(obj, 'getTopic');
+            obj.DataType = internal(obj, 'getDataType');
+            obj.MD5Sum   = internal(obj, 'getMD5Sum');
+            %obj.Latched  = internal(obj, 'isLatched'); % currently not implemented
         end
 
         function delete(obj)
@@ -32,16 +42,8 @@ classdef Publisher < handle
             internal(obj, 'publish', varargin{:});
         end
 
-        function result = get.Topic(obj)
-            result = internal(obj, 'getTopic');
-        end
-
         function result = get.NumSubscribers(obj)
             result = internal(obj, 'getNumSubscribers');
-        end
-
-        function result = get.Latched(obj)
-            result = internal(obj, 'isLatched');
         end
     end
 end

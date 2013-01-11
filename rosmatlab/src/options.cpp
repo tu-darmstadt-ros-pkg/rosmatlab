@@ -31,6 +31,8 @@
 
 #include <mex.h>
 
+#include <boost/algorithm/string.hpp>
+
 namespace rosmatlab {
 
 template <typename T>
@@ -147,22 +149,24 @@ Options::Options()
 {
 }
 
-Options::Options(int nrhs, const mxArray *prhs[])
+Options::Options(int nrhs, const mxArray *prhs[], bool lowerCaseKeys)
 {
-  init(nrhs, prhs);
+  init(nrhs, prhs, lowerCaseKeys);
 }
 
 Options::~Options()
 {
 }
 
-void Options::init(int nrhs, const mxArray *prhs[])
+void Options::init(int nrhs, const mxArray *prhs[], bool lowerCaseKeys)
 {
   if (nrhs % 2 != 0) { nrhs--; prhs++; }
 
   for(; nrhs > 0; nrhs -= 2, prhs += 2) {
     if (!isString(prhs[0])) continue;
     std::string key = getString(prhs[0]);
+    if (lowerCaseKeys) boost::algorithm::to_lower(key);
+
     if (isString(prhs[1])) strings_[key] = getString(prhs[1]);
     if (isDoubleScalar(prhs[1])) doubles_[key] = getDoubleScalar(prhs[1]);
     if (isLogicalScalar(prhs[1])) logicals_[key] = getLogicalScalar(prhs[1]);
@@ -174,21 +178,21 @@ bool Options::hasKey(const std::string& key) const
   return strings_.count(key) || doubles_.count(key) || logicals_.count(key);
 }
 
-const std::string& Options::getString(const std::string& key, const std::string& default_value)
+const std::string& Options::getString(const std::string& key, const std::string& default_value) const
 {
   used_[key] = true;
   if (strings_.count(key)) return strings_.at(key);
   return default_value;
 }
 
-double Options::getDouble(const std::string& key, double default_value)
+double Options::getDouble(const std::string& key, double default_value) const
 {
   used_[key] = true;
   if (doubles_.count(key)) return doubles_.at(key);
   return default_value;
 }
 
-bool Options::getBool(const std::string& key, bool default_value)
+bool Options::getBool(const std::string& key, bool default_value) const
 {
   used_[key] = true;
   if (logicals_.count(key)) return logicals_.at(key);
@@ -214,13 +218,13 @@ Options &Options::set(const std::string& key, bool value)
   return *this;
 }
 
-void Options::warnUnused()
+void Options::warnUnused() const
 {
-  for(std::map<std::string,std::string>::iterator it = strings_.begin(); it != strings_.end(); ++it)
+  for(std::map<std::string,std::string>::const_iterator it = strings_.begin(); it != strings_.end(); ++it)
     if (!used_[it->first]) mexPrintf(std::string("Warning: unused string argument '" + it->first + "'\n").c_str());
-  for(std::map<std::string,double>::iterator it = doubles_.begin(); it != doubles_.end(); ++it)
+  for(std::map<std::string,double>::const_iterator it = doubles_.begin(); it != doubles_.end(); ++it)
     if (!used_[it->first]) mexPrintf(std::string("Warning: unused double argument '" + it->first + "'\n").c_str());
-  for(std::map<std::string,bool>::iterator it = logicals_.begin(); it != logicals_.end(); ++it)
+  for(std::map<std::string,bool>::const_iterator it = logicals_.begin(); it != logicals_.end(); ++it)
     if (!used_[it->first]) mexPrintf(std::string("Warning: unused logical argument '" + it->first + "'\n").c_str());
 }
 

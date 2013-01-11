@@ -5,8 +5,13 @@ classdef Subscriber < handle
         poll_timer = []
     end
 
+    properties (SetAccess = private)
+        Topic = ''
+        DataType = ''
+        MD5Sum = ''
+    end
+
     properties (SetAccess = private, Dependent)
-        Topic
         NumPublishers
     end
 
@@ -23,6 +28,10 @@ classdef Subscriber < handle
         function obj = Subscriber(varargin)
             obj.handle = internal(obj, 'create', varargin{:});
             obj.poll_timer = timer('ExecutionMode', 'fixedDelay', 'ObjectVisibility', 'off', 'TimerFcn', @(~,~) obj.poll(0));
+
+            obj.Topic    = internal(obj, 'getTopic');
+            obj.DataType = internal(obj, 'getDataType');
+            obj.MD5Sum   = internal(obj, 'getMD5Sum');
         end
 
         function delete(obj)
@@ -45,9 +54,19 @@ classdef Subscriber < handle
             result = internal(obj, 'subscribe', topic, datatype, varargin{:});
         end
 
-        function message = poll(obj, varargin)
-            message = internal(obj, 'poll', varargin{:});
-            if (~isempty(message)); notify(obj, 'Callback', ros.MessageEvent(message)); end
+        function [message, connectionHeader, receiptTime] = poll(obj, varargin)
+            nargoutchk(0, 3);
+            switch nargout
+                case 0
+                    message = internal(obj, 'poll', varargin{:});
+                case 1
+                    message = internal(obj, 'poll', varargin{:});
+                case 2
+                    [message, connectionHeader] = internal(obj, 'poll', varargin{:});
+                case 3
+                    [message, connectionHeader, receiptTime] = internal(obj, 'poll', varargin{:});
+            end
+            if (~isempty(message)); notify(obj, 'Callback', ros.MessageEvent(message, obj.Topic, obj.DataType, obj.MD5Sum)); end
         end
 
         function result = getConnectionHeader(obj)
@@ -56,10 +75,6 @@ classdef Subscriber < handle
 
         function result = getReceiptTime(obj)
             result = internal(obj, 'getReceiptTime');
-        end
-
-        function result = get.Topic(obj)
-            result = internal(obj, 'getTopic');
         end
 
         function result = get.NumPublishers(obj)

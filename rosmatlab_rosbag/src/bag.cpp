@@ -161,7 +161,7 @@ void Bag::write(int nrhs, const mxArray *prhs[])
   }
 
   // set timestamp to current time if no timestamp was given
-  if (!timestamp.isValid()) timestamp = ros::Time::now();
+  if (timestamp.isZero()) timestamp = ros::Time::now();
 
   // introspect message
   MessagePtr introspection = cpp_introspection::messageByDataType(datatype);

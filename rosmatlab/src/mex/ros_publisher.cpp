@@ -41,6 +41,8 @@ void mexFunction( int nlhs, mxArray *plhs[],
       .add("advertise", &Publisher::advertise)
       .add("publish", &Publisher::publish)
       .add("getTopic", &Publisher::getTopic)
+      .add("getDataType", &Publisher::getDataType)
+      .add("getMD5Sum", &Publisher::getMD5Sum)
       .add("getNumSubscribers", &Publisher::getNumSubscribers)
       .add("isLatched", &Publisher::isLatched)
       .throwOnUnknown();

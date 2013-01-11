@@ -48,8 +48,8 @@ classdef Bag < handle
             internal(obj, 'close');
         end
 
-        function write(obj, topic, data, varargin)
-            internal(obj, 'write', topic, data, varargin{:})
+        function write(obj, topic, datatype, data, varargin)
+            internal(obj, 'write', topic, datatype, data, varargin{:})
         end
 
         % Get the filename of the bag

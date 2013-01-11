@@ -27,9 +27,10 @@
 //=================================================================================================
 
 #include <rosmatlab/exception.h>
+#include <rosmatlab/log.h>
 
 namespace rosmatlab {
 
-  const std::string Exception::prefix("[rosmatlab] ");
+  const std::string Exception::prefix(ROSMATLAB_PRINTF_PREFIX);
 
 } // namespace rosmatlab

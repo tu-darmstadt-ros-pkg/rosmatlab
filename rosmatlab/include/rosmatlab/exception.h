@@ -34,8 +34,7 @@
 
 namespace rosmatlab {
 
-class Exception : public std::runtime_error {
-public:
+struct Exception : public std::runtime_error {
   static const std::string prefix;
 
   Exception(const std::runtime_error &other)
@@ -46,12 +45,18 @@ public:
     : std::runtime_error(prefix + source + ": " + arg) {}
 };
 
-class ArgumentException : public Exception {
-public:
+struct ArgumentException : public Exception {
+  ArgumentException(unsigned int min, unsigned int max = 0)
+    : Exception("This function needs at least " + boost::lexical_cast<std::string>(min) + " argument" + (min > 1 ? "s" : "")) {}
   ArgumentException(const std::string& function, unsigned int min, unsigned int max = 0)
     : Exception(function + " needs at least " + boost::lexical_cast<std::string>(min) + " argument" + (min > 1 ? "s" : "")) {}
   ArgumentException(const std::string& function, const std::string& arg)
     : Exception(function, arg) {}
+};
+
+struct UnknownDataTypeException : public Exception {
+  UnknownDataTypeException(const std::string& datatype, const std::string& text = std::string())
+    : Exception("Unknown data type '" + datatype + "'" + (!text.empty() ? ". " + text : "")) {}
 };
 
 } // namespace rosmatlab

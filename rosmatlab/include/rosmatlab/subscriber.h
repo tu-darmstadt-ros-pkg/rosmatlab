@@ -52,10 +52,13 @@ public:
   mxArray *subscribe(int nrhs, const mxArray *prhs[]);
   mxArray *poll(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
 
+  mxArray *getTopic() const;
+  mxArray *getDataType() const;
+  mxArray *getMD5Sum() const;
+
   mxArray *getConnectionHeader() const;
   mxArray *getReceiptTime() const;
 
-  mxArray *getTopic() const;
   mxArray *getNumPublishers() const;
 
 private:
@@ -70,7 +73,7 @@ private:
   ros::CallbackQueue callback_queue_;
   ros::WallDuration timeout_;
 
-  MessagePtr introspection_;
+  cpp_introspection::MessagePtr introspection_;
   boost::shared_ptr<MessageEvent> new_event_;
   boost::shared_ptr<MessageEvent> last_event_;
 };

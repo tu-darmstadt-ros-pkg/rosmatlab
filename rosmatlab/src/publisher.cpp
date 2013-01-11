@@ -125,6 +125,18 @@ mxArray *Publisher::getTopic() const
   return mxCreateString(ros::Publisher::getTopic().c_str());
 }
 
+mxArray *Publisher::getDataType() const
+{
+  if (!introspection_) return mxCreateString(0);
+  return mxCreateString(introspection_->getDataType());
+}
+
+mxArray *Publisher::getMD5Sum() const
+{
+  if (!introspection_) return mxCreateString(0);
+  return mxCreateString(introspection_->getMD5Sum());
+}
+
 mxArray *Publisher::getNumSubscribers() const
 {
   return mxCreateDoubleScalar(ros::Publisher::getNumSubscribers());

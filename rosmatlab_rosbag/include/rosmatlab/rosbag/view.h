@@ -30,22 +30,55 @@
 #define ROSMATLAB_ROSBAG_VIEW_H
 
 #include <rosbag/view.h>
+#include <rosmatlab/object.h>
 
-#include <rosmatlab/rosbag/bag.h>
-#include <rosmatlab/conversion.h>
+#include <introspection/forwards.h>
 
 namespace rosmatlab {
 namespace rosbag {
 
-class View {
+class Query;
+
+class View : public ::rosbag::View, public Object<View> {
 public:
-  View(const Bag &bag, int nrhs, const mxArray *prhs[]);
+  using ::rosbag::View::iterator;
+  using ::rosbag::View::const_iterator;
+
+  View(int nrhs, const mxArray *prhs[]);
   virtual ~View();
 
-  View &init(int nrhs, const mxArray *prhs[]);
+  using ::rosbag::View::begin;
+  using ::rosbag::View::end;
+  using ::rosbag::View::size;
+
+  mxArray *getSize();
+
+  void addQuery(int nrhs, const mxArray *prhs[]);
+  void reset();
+
+  mxArray *eof();
+  mxArray *get(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
+  mxArray *next(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
+
+  mxArray *getTime();
+  mxArray *getTopic();
+  mxArray *getDataType();
+  mxArray *getMD5Sum();
+  mxArray *getMessageDefinition();
+  mxArray *getConnectionHeader();
+  mxArray *getCallerId();
+  mxArray *isLatching();
+
+  mxArray *getQueries();
+  mxArray *getConnections();
 
 private:
-  const Bag &bag_;
+  std::vector<boost::shared_ptr<Query> > queries_;
+  std::vector<uint8_t> read_buffer_;
+
+  cpp_introspection::MessagePtr message_instance_;
+  iterator current_;
+  bool eof_;
 };
 
 } // namespace rosbag

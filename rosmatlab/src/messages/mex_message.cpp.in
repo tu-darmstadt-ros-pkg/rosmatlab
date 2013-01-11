@@ -29,6 +29,8 @@
 #include <introspection/message.h>
 #include <rosmatlab/conversion.h>
 #include <rosmatlab/options.h>
+#include <rosmatlab/log.h>
+
 #include "introspection/@package@/package.h"
 #include "mex.h"
 
@@ -43,7 +45,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   MessagePtr message = messageByDataType("@package@/@msg@");
 
   if (!message) {
-    mexPrintf("[rosmatlab] Message @package@/@msg@ is unknown.\n");
+    mexPrintf(ROSMATLAB_PRINTF_PREFIX "Message @package@/@msg@ is unknown.\n");
     return;
   }
 
