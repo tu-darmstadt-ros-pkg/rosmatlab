@@ -255,12 +255,15 @@ Options &Options::set(const std::string &key, const mxArray *value)
 
 void Options::warnUnused() const
 {
-  for(StringMap::const_iterator it = strings_.begin(); it != strings_.end(); ++it)
+  for(StringMap::const_iterator it = strings_.begin(); it != strings_.end(); ++it) {
     if (!used_[it->first]) ROSMATLAB_PRINTF("Warning: unused string argument '%s'", it->first.c_str());
-  for(DoubleMap::const_iterator it = doubles_.begin(); it != doubles_.end(); ++it)
+  }
+  for(DoubleMap::const_iterator it = doubles_.begin(); it != doubles_.end(); ++it) {
     if (!used_[it->first]) ROSMATLAB_PRINTF("Warning: unused double argument '%s'", it->first.c_str());
-  for(BoolMap::const_iterator it = bools_.begin(); it != bools_.end(); ++it)
+  }
+  for(BoolMap::const_iterator it = bools_.begin(); it != bools_.end(); ++it) {
     if (!used_[it->first]) ROSMATLAB_PRINTF("Warning: unused logical argument '%s'", it->first.c_str());
+  }
 }
 
 } // namespace rosmatlab
