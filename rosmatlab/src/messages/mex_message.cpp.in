@@ -64,6 +64,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         plhs[0] = mxCreateString(message->getMD5Sum());
         return;
       }
+      if (option == "fields") {
+        plhs[0] = mxCreateCellMatrix(1, message->getFieldNames().size());
+        for(std::size_t i = 0; i < message->getFieldNames().size(); ++i) {
+          mxSetCell(plhs[0], i, mxCreateString(message->getFieldNames().at(i)));
+        }
+        return;
+      }
       continue;
     }
 
@@ -78,7 +85,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         MessagePtr m = Conversion(message).fromMatlab(prhs[i], j);
 //        std::cout << "Constructed a " << m->getDataType() << " message: " << *boost::shared_static_cast<MessageType const>(m->getConstInstance()) << std::endl;
         Conversion conversion(m);
-        plhs[0] = want_array ? conversion.toDoubleMatrix(plhs[0], j) : conversion.toStruct(plhs[0], j);
+        plhs[0] = want_array ? conversion.toDoubleMatrix(plhs[0], j, size) : conversion.toStruct(plhs[0], j, size);
       }
     }
   }
