@@ -34,6 +34,8 @@
 
 #include <boost/shared_ptr.hpp>
 #include <boost/function.hpp>
+#include <boost/type_traits.hpp>
+
 #include "mex.h"
 
 #include <stdint.h>
@@ -120,22 +122,97 @@ Type *getObject(const mxArray *handle) {
   return object->get();
 }
 
+namespace internal {
+
+  template <typename T> static inline mxArray *mx_cast(T result) {
+    return mxCreateDoubleScalar(result);
+  }
+
+  template<> mxArray *mx_cast(mxArray *result) {
+    return result;
+  }
+
+  template<> mxArray *mx_cast(bool result) {
+    return mxCreateLogicalScalar(result);
+  }
+
+  template<> mxArray *mx_cast(const std::string& result) {
+    return mxCreateString(result.c_str());
+  }
+
+  template <class Type, class Result>
+  static inline void callMex(const boost::function<Result(Type *, int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])> &func, Type *obj, int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
+  {
+    plhs[0] = mx_cast(func(obj, nlhs, plhs, nrhs, prhs));
+  }
+
+  template <class Type, class Result>
+  static inline void callMex(const boost::function<Result(Type *, int nrhs, const mxArray *prhs[])> &func, Type *obj, int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
+  {
+    plhs[0] = mx_cast(func(obj, nrhs, prhs));
+  }
+
+  template <class Type, class Result>
+  static inline void callMex(const boost::function<Result(Type *)> &func, Type *obj, int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
+  {
+    plhs[0] = mx_cast(func(obj));
+  }
+
+  template <class Type>
+  static inline void callMex(const boost::function<void(Type *, int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])> &func, Type *obj, int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
+  {
+    func(obj, nlhs, plhs, nrhs, prhs);
+  }
+
+  template <class Type>
+  static inline void callMex(const boost::function<void(Type *, int nrhs, const mxArray *prhs[])> &func, Type *obj, int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
+  {
+    func(obj, nrhs, prhs);
+  }
+
+  template <class Type>
+  static inline void callMex(const boost::function<void(Type *)> &func, Type *obj, int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
+  {
+    func(obj);
+  }
+
+  template <class Signature>
+  class MexFunctor {
+  public:
+    typedef Signature* function_pointer;
+    typedef boost::function<Signature> function_type;
+    typedef typename boost::remove_pointer<typename boost::function_traits<Signature>::arg1_type>::type object_type;
+
+    MexFunctor(const function_type& func) : target_(func) {}
+    MexFunctor(function_pointer func) : target_(func) {}
+
+    void operator()(object_type *obj, int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
+      callMex(target_, obj, nlhs, plhs, nrhs, prhs);
+    }
+
+  private:
+    boost::function<Signature> target_;
+  };
+}
+
 template <class Type>
 class MexMethodMap {
 private:
-  typedef boost::function<void(Type *, int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])> FunctionType1;
-  typedef boost::function<void(Type *, int nrhs, const mxArray *prhs[])> FunctionType2;
-  typedef boost::function<void(Type *)> FunctionType3;
-  typedef boost::function<mxArray *(Type *, int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])> FunctionType4;
-  typedef boost::function<mxArray *(Type *, int nrhs, const mxArray *prhs[])> FunctionType5;
-  typedef boost::function<mxArray *(Type *)> FunctionType6;
+//  typedef boost::function<void(Type *, int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])> FunctionType1;
+//  typedef boost::function<void(Type *, int nrhs, const mxArray *prhs[])> FunctionType2;
+//  typedef boost::function<void(Type *)> FunctionType3;
+//  typedef boost::function<mxArray *(Type *, int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])> FunctionType4;
+//  typedef boost::function<mxArray *(Type *, int nrhs, const mxArray *prhs[])> FunctionType5;
+//  typedef boost::function<mxArray *(Type *)> FunctionType6;
 
-  std::map<std::string,FunctionType1> methods1_;
-  std::map<std::string,FunctionType2> methods2_;
-  std::map<std::string,FunctionType3> methods3_;
-  std::map<std::string,FunctionType4> methods4_;
-  std::map<std::string,FunctionType5> methods5_;
-  std::map<std::string,FunctionType6> methods6_;
+//  std::map<std::string,FunctionType1> methods1_;
+//  std::map<std::string,FunctionType2> methods2_;
+//  std::map<std::string,FunctionType3> methods3_;
+//  std::map<std::string,FunctionType4> methods4_;
+//  std::map<std::string,FunctionType5> methods5_;
+//  std::map<std::string,FunctionType6> methods6_;
+
+  std::map<std::string,boost::function<void(Type *, int, mxArray *[], int, const mxArray *[])> > methods_;
 
   bool initialized_;
   bool throw_on_unknown_;
@@ -160,99 +237,79 @@ public:
     return *this;
   }
 
-  MexMethodMap &add(const std::string& name, void (Type::*function)(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])) {
-    methods1_[name] = function;
+  template <typename Result>
+  MexMethodMap &add(const std::string& name, Result (Type::*function)(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])) {
+    methods_[name] = internal::MexFunctor<Result (Type *, int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])>(function);
     return *this;
   }
 
-  MexMethodMap &add(const std::string& name, void (Type::*function)(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) const) {
-    methods1_[name] = function;
+  template <typename Result>
+  MexMethodMap &add(const std::string& name, Result (Type::*function)(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) const) {
+    methods_[name] = internal::MexFunctor<Result (const Type *, int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])>(function);
     return *this;
   }
 
-  MexMethodMap &add(const std::string& name, void (Type::*function)(int nrhs, const mxArray *prhs[])) {
-    methods2_[name] = function;
+  template <typename Result>
+  MexMethodMap &add(const std::string& name, Result (Type::*function)(int nrhs, const mxArray *prhs[])) {
+    methods_[name] = internal::MexFunctor<Result (Type *, int nrhs, const mxArray *prhs[])>(function);
     return *this;
   }
 
-  MexMethodMap &add(const std::string& name, void (Type::*function)(int nrhs, const mxArray *prhs[]) const) {
-    methods2_[name] = function;
+  template <typename Result>
+  MexMethodMap &add(const std::string& name, Result (Type::*function)(int nrhs, const mxArray *prhs[]) const) {
+    methods_[name] = internal::MexFunctor<Result (const Type *, int nrhs, const mxArray *prhs[])>(function);
     return *this;
   }
 
-  MexMethodMap &add(const std::string& name, void (Type::*function)()) {
-    methods3_[name] = function;
+  template <typename Result>
+  MexMethodMap &add(const std::string& name, Result (Type::*function)()) {
+    methods_[name] = internal::MexFunctor<Result (Type *)>(function);
     return *this;
   }
 
-  MexMethodMap &add(const std::string& name, void (Type::*function)() const) {
-    methods3_[name] = function;
+  template <typename Result>
+  MexMethodMap &add(const std::string& name, Result (Type::*function)() const) {
+    methods_[name] = internal::MexFunctor<Result (const Type *)>(function);
     return *this;
   }
 
-  MexMethodMap &add(const std::string& name, mxArray *(Type::*function)(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])) {
-    methods4_[name] = function;
-    return *this;
-  }
+//  MexMethodMap &add(const std::string& name, mxArray *(Type::*function)(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])) {
+//    methods_[name] = internal::MexFunctor<mxArray *(Type *, int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])>(function);
+//    return *this;
+//  }
 
-  MexMethodMap &add(const std::string& name, mxArray *(Type::*function)(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) const) {
-    methods4_[name] = function;
-    return *this;
-  }
+//  MexMethodMap &add(const std::string& name, mxArray *(Type::*function)(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) const) {
+//    methods_[name] = internal::MexFunctor<mxArray *(const Type *, int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])>(function);
+//    return *this;
+//  }
 
-  MexMethodMap &add(const std::string& name, mxArray *(Type::*function)(int nrhs, const mxArray *prhs[])) {
-    methods5_[name] = function;
-    return *this;
-  }
+//  MexMethodMap &add(const std::string& name, mxArray *(Type::*function)(int nrhs, const mxArray *prhs[])) {
+//    methods_[name] = internal::MexFunctor<mxArray *(Type *, int nrhs, const mxArray *prhs[])>(function);
+//    return *this;
+//  }
 
-  MexMethodMap &add(const std::string& name, mxArray *(Type::*function)(int nrhs, const mxArray *prhs[]) const) {
-    methods5_[name] = function;
-    return *this;
-  }
+//  MexMethodMap &add(const std::string& name, mxArray *(Type::*function)(int nrhs, const mxArray *prhs[]) const) {
+//    methods_[name] = internal::MexFunctor<mxArray *(const Type *, int nrhs, const mxArray *prhs[])>(function);
+//    return *this;
+//  }
 
-  MexMethodMap &add(const std::string& name, mxArray *(Type::*function)()) {
-    methods6_[name] = function;
-    return *this;
-  }
+//  MexMethodMap &add(const std::string& name, mxArray *(Type::*function)()) {
+//    methods_[name] = internal::MexFunctor<mxArray *(Type *)>(function);
+//    return *this;
+//  }
 
-  MexMethodMap &add(const std::string& name, mxArray *(Type::*function)() const) {
-    methods6_[name] = function;
-    return *this;
-  }
+//  MexMethodMap &add(const std::string& name, mxArray *(Type::*function)() const) {
+//    methods_[name] = internal::MexFunctor<mxArray *(const Type *)>(function);
+//    return *this;
+//  }
 
   bool has(const std::string& name) const {
-    bool found = methods1_.count(name) || methods2_.count(name) || methods3_.count(name) || methods4_.count(name) || methods5_.count(name) || methods6_.count(name);
-    return found;
+    return methods_.count(name);
   }
 
   bool call(Type *object, const std::string& name, int &nlhs, mxArray **&plhs, int &nrhs, const mxArray **&prhs) const {
-    if (methods1_.count(name)) {
-      methods1_.at(name)(object, nlhs, plhs, nrhs, prhs);
-      return true;
-    }
-
-    if (methods2_.count(name)) {
-      methods2_.at(name)(object, nrhs, prhs);
-      return true;
-    }
-
-    if (methods3_.count(name)) {
-      methods3_.at(name)(object);
-      return true;
-    }
-
-    if (methods4_.count(name)) {
-      plhs[0] = methods4_.at(name)(object, nlhs, plhs, nrhs, prhs);
-      return true;
-    }
-
-    if (methods5_.count(name)) {
-      plhs[0] = methods5_.at(name)(object, nrhs, prhs);
-      return true;
-    }
-
-    if (methods6_.count(name)) {
-      plhs[0] = methods6_.at(name)(object);
+    if (methods_.count(name)) {
+      methods_.at(name)(object, nlhs, plhs, nrhs, prhs);
       return true;
     }
 
