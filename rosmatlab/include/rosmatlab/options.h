@@ -33,6 +33,7 @@
 #include <string>
 #include <map>
 #include <vector>
+#include <set>
 
 namespace rosmatlab {
 class Options {
@@ -76,12 +77,18 @@ public:
   bool getBool(const std::string& key, bool default_value = false) const;
   const Bools& getBools(const std::string& key) const;
 
-  Options &set(const std::string &key, const mxArray *value);
+  Options &add(const std::string& key, const std::string& value);
+  Options &add(const std::string& key, double value);
+  Options &add(const std::string& key, bool value);
+
   Options &set(const std::string& key, const std::string& value);
   Options &set(const std::string& key, double value);
   Options &set(const std::string& key, bool value);
 
+  Options &set(const std::string &key, const mxArray *value);
+
   void warnUnused() const;
+  void throwOnUnused() const;
 
   const StringMap& strings() const { return strings_; }
   const DoubleMap& doubles() const { return doubles_; }
@@ -92,7 +99,7 @@ private:
   DoubleMap doubles_;
   BoolMap bools_;
 
-  mutable std::map<std::string,bool> used_;
+  mutable std::set<std::string> used_;
 };
 
 } // namespace rosmatlab

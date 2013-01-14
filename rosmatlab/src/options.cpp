@@ -28,6 +28,7 @@
 
 #include <rosmatlab/options.h>
 #include <rosmatlab/log.h>
+#include <rosmatlab/exception.h>
 
 #include <mex.h>
 
@@ -181,15 +182,19 @@ bool Options::hasKey(const std::string& key) const
 
 const std::string& Options::getString(const std::string& key, const std::string& default_value) const
 {
-  used_[key] = true;
-  if (strings_.count(key) && strings_.at(key).size()) return strings_.at(key).front();
+  if (strings_.count(key) && strings_.at(key).size()) {
+    used_.insert(key);
+    return strings_.at(key).front();
+  }
   return default_value;
 }
 
 const Options::Strings& Options::getStrings(const std::string &key) const
 {
-  used_[key] = true;
-  if (strings_.count(key)) return strings_.at(key);
+  if (strings_.count(key)) {
+    used_.insert(key);
+    return strings_.at(key);
+  }
 
   static const Strings empty;
   return empty;
@@ -197,32 +202,42 @@ const Options::Strings& Options::getStrings(const std::string &key) const
 
 double Options::getDouble(const std::string& key, double default_value) const
 {
-  used_[key] = true;
-  if (doubles_.count(key) && doubles_.at(key).size()) return doubles_.at(key).front();
+  if (doubles_.count(key) && doubles_.at(key).size()) {
+    used_.insert(key);
+    return doubles_.at(key).front();
+  }
   return default_value;
 }
 
 const Options::Doubles& Options::getDoubles(const std::string &key) const
 {
-  used_[key] = true;
-  if (doubles_.count(key)) return doubles_.at(key);
-
+  if (doubles_.count(key)) {
+    used_.insert(key);
+    return doubles_.at(key);
+  }
   static const Doubles empty;
   return empty;
 }
 
 bool Options::getBool(const std::string& key, bool default_value) const
 {
-  used_[key] = true;
-  if (bools_.count(key)   && bools_.at(key).size())   return bools_.at(key).front();
-  if (doubles_.count(key) && doubles_.at(key).size()) return doubles_.at(key).front();
+  if (bools_.count(key)   && bools_.at(key).size())   {
+    used_.insert(key);
+    return bools_.at(key).front();
+  }
+  if (doubles_.count(key) && doubles_.at(key).size()) {
+    used_.insert(key);
+    return doubles_.at(key).front();
+  }
   return default_value;
 }
 
 const Options::Bools& Options::getBools(const std::string &key) const
 {
-  used_[key] = true;
-  if (bools_.count(key)) return bools_.at(key);
+  if (bools_.count(key)) {
+    used_.insert(key);
+    return bools_.at(key);
+  }
 
   static const Bools empty;
   return empty;
@@ -246,23 +261,61 @@ Options &Options::set(const std::string& key, bool value)
   return *this;
 }
 
+Options &Options::add(const std::string& key, const std::string& value)
+{
+  strings_[key].push_back(value);
+  return *this;
+}
+
+Options &Options::add(const std::string& key, double value)
+{
+  doubles_[key].push_back(value);
+  return *this;
+}
+
+Options &Options::add(const std::string& key, bool value)
+{
+  bools_[key].push_back(value);
+  return *this;
+}
+
 Options &Options::set(const std::string &key, const mxArray *value)
 {
-  if (isString(value))        strings_[key].push_back(getString(value));
-  if (isDoubleScalar(value))  doubles_[key].push_back(getDoubleScalar(value));
-  if (isLogicalScalar(value)) bools_[key].push_back(getLogicalScalar(value));
+  if (isString(value))        add(key, getString(value));
+  if (isDoubleScalar(value))  add(key, getDoubleScalar(value));
+  if (isLogicalScalar(value)) add(key, getLogicalScalar(value));
+
+  if (mxIsCell(value)) {
+    std::size_t n = mxGetNumberOfElements(value);
+    for(mwIndex i = 0; i < n; ++i) {
+      set(key, mxGetCell(value, i));
+    }
+  }
 }
 
 void Options::warnUnused() const
 {
   for(StringMap::const_iterator it = strings_.begin(); it != strings_.end(); ++it) {
-    if (!used_[it->first]) ROSMATLAB_PRINTF("Warning: unused string argument '%s'", it->first.c_str());
+    if (!used_.count(it->first)) ROSMATLAB_PRINTF("WARNING: unused string argument '%s'", it->first.c_str());
   }
   for(DoubleMap::const_iterator it = doubles_.begin(); it != doubles_.end(); ++it) {
-    if (!used_[it->first]) ROSMATLAB_PRINTF("Warning: unused double argument '%s'", it->first.c_str());
+    if (!used_.count(it->first)) ROSMATLAB_PRINTF("WARNING: unused double argument '%s'", it->first.c_str());
   }
   for(BoolMap::const_iterator it = bools_.begin(); it != bools_.end(); ++it) {
-    if (!used_[it->first]) ROSMATLAB_PRINTF("Warning: unused logical argument '%s'", it->first.c_str());
+    if (!used_.count(it->first)) ROSMATLAB_PRINTF("WARNING: unused logical argument '%s'", it->first.c_str());
+  }
+}
+
+void Options::throwOnUnused() const
+{
+  for(StringMap::const_iterator it = strings_.begin(); it != strings_.end(); ++it) {
+    if (!used_.count(it->first)) throw Exception("unknown string argument '" + it->first + "'");
+  }
+  for(DoubleMap::const_iterator it = doubles_.begin(); it != doubles_.end(); ++it) {
+    if (!used_.count(it->first)) throw Exception("unknown double argument '" + it->first + "'");
+  }
+  for(BoolMap::const_iterator it = bools_.begin(); it != bools_.end(); ++it) {
+    if (!used_.count(it->first)) throw Exception("unknown logical argument '" + it->first + "'");
   }
 }
 
