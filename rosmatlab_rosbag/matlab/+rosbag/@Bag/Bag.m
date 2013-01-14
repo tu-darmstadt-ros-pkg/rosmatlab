@@ -48,8 +48,8 @@ classdef Bag < handle
             internal(obj, 'close');
         end
 
-        function data = get(obj, varargin)
-            data = internal(obj, 'get', varargin{:});
+        function data = data(obj, varargin)
+            data = internal(obj, 'data', varargin{:});
         end
 
         function write(obj, topic, datatype, data, varargin)

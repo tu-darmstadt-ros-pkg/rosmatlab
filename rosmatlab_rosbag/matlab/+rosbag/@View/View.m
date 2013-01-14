@@ -50,28 +50,31 @@ classdef View < handle
             internal(obj, 'reset');
         end
 
+        function result = start(obj)
+            result = internal(obj, 'start');
+        end
+
+        function result = valid(obj)
+            result = internal(obj, 'valid');
+        end
+
         function result = eof(obj)
             result = internal(obj, 'eof');
         end
 
-        function [message, topic, datatype, connectionHeader, receiptTime] = next(obj, varargin)
+        function [message, topic, datatype, varargout] = next(obj, varargin)
             nargoutchk(0, 5);
-            message = internal(obj, 'next', varargin{:});
-            topic = obj.Topic;
-            datatype = obj.DataType;
-            if (nargout >= 4); connectionHeader = obj.ConnectionHeader; end
-            if (nargout >= 5); time = obj.Time; end
-
+            [message, topic, datatype, varargout{1:nargout-3}] = internal(obj, 'next', varargin{:});
             if (~isempty(message)); notify(obj, 'Callback', ros.MessageEvent(message, topic, datatype, obj.MD5Sum)); end
         end
 
-        function [message, topic, datatype, connectionHeader, receiptTime] = get(obj, varargin)
+        function varargout = get(obj, varargin)
             nargoutchk(0, 5);
-            message = internal(obj, 'get', varargin{:});
-            topic = obj.Topic;
-            datatype = obj.DataType;
-            if (nargout >= 4); connectionHeader = obj.ConnectionHeader; end
-            if (nargout >= 5); time = obj.Time; end
+            [varargout{1:nargout}] = internal(obj, 'get', varargin{:});
+        end
+
+        function data = data(obj, varargin)
+            data = internal(obj, 'data', varargin{:});
         end
 
         function result = get.Time(obj)

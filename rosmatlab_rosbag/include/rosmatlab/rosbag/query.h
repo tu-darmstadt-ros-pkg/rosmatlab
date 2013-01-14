@@ -26,41 +26,61 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //=================================================================================================
 
-#ifndef ROSMATLAB_ROSBAG_BAG_H
-#define ROSMATLAB_ROSBAG_BAG_H
+#ifndef ROSMATLAB_ROSBAG_QUERY_H
+#define ROSMATLAB_ROSBAG_QUERY_H
 
-#include <rosbag/bag.h>
-#include <rosmatlab/object.h>
+#include <rosmatlab/options.h>
+#include <rosbag/query.h>
+#include <introspection/forwards.h>
 
 namespace rosmatlab {
 namespace rosbag {
 
-class Bag : public ::rosbag::Bag, public Object<Bag> {
+using ::rosbag::ConnectionInfo;
+
+class Query
+{
 public:
-  Bag();
-  Bag(int nrhs, const mxArray *prhs[]);
-  virtual ~Bag();
+  Query();
+  Query(int nrhs, const mxArray *prhs[]);
+  Query(const Options& options);
+  Query(const std::string& topic);
+  virtual ~Query();
 
-  void open(int nrhs, const mxArray *prhs[]);
-  void close();
+  virtual void init(const Options& options);
+  virtual bool operator()(const ConnectionInfo *info);
 
-  void data(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
+  ros::Time const& getStartTime() const;
+  ros::Time const& getEndTime()   const;
 
-  mxArray *getFileName()     const;                      //!< Get the filename of the bag
-  mxArray *getMode()         const;                      //!< Get the mode the bag is in
-  mxArray *getMajorVersion() const;                      //!< Get the major-version of the open bag file
-  mxArray *getMinorVersion() const;                      //!< Get the minor-version of the open bag file
-  mxArray *getSize()         const;                      //!< Get the current size of the bag file (a lower bound)
+  static mxArray *toMatlab(const std::vector<boost::shared_ptr<Query> >&);
 
-  void     setCompression(int nrhs, const mxArray *prhs[]);     //!< Set the compression method to use for writing chunks
-  mxArray *getCompression() const;                              //!< Get the compression method to use for writing chunks
-  void     setChunkThreshold(int nrhs, const mxArray *prhs[]);  //!< Set the threshold for creating new chunks
-  mxArray *getChunkThreshold() const;                           //!< Get the threshold for creating new chunks
+private:
+  typedef std::set<std::string> Filter;
+  Filter topics_;
+  Filter datatypes_;
+  Filter md5sums_;
 
-  void write(int nrhs, const mxArray *prhs[]);
+  ros::Time start_time_;
+  ros::Time end_time_;
+};
+typedef boost::shared_ptr<Query> QueryPtr;
+
+// used internally
+class TopicFilterQuery
+{
+public:
+  TopicFilterQuery(::rosbag::Query& base, const std::string& topic);
+  virtual ~TopicFilterQuery();
+
+  virtual bool operator()(const ConnectionInfo *info);
+
+private:
+  ::rosbag::Query& base_;
+  std::string topic_;
 };
 
 } // namespace rosbag
 } // namespace rosmatlab
 
-#endif // ROSMATLAB_ROSBAG_BAG_H
+#endif // ROSMATLAB_ROSBAG_QUERY_H

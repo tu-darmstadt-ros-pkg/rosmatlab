@@ -41,35 +41,7 @@ using ::rosbag::MessageInstance;
 using ::rosbag::ConnectionInfo;
 
 class Bag;
-class View;
-
-class Query
-{
-public:
-  Query(int nrhs, const mxArray *prhs[]);
-  Query(const Options& options);
-  Query(const std::string& topic);
-  Query(const Query& other, const std::string& topic);
-  ~Query();
-
-  bool operator()(const ConnectionInfo *info);
-
-  void init(const Options& options);
-
-  const ros::Time &getStartTime() const { return start_time_; }
-  const ros::Time &getEndTime() const { return end_time_; }
-
-  static mxArray *toMatlab(const std::vector<boost::shared_ptr<Query> >&);
-
-private:
-  typedef std::set<std::string> Filter;
-  Filter topics_;
-  Filter datatypes_;
-  Filter md5sums_;
-  ros::Time start_time_;
-  ros::Time end_time_;
-};
-typedef boost::shared_ptr<Query> QueryPtr;
+class Query;
 
 class View : public ::rosbag::View, public Object<View> {
 public:
@@ -92,13 +64,14 @@ public:
   void addQuery(const Bag& bag, int nrhs, const mxArray *prhs[]);
 
   void reset();
-  void increment();
+  bool start();
   bool valid();
-
-  mxArray *eof();
+  bool eof();
+  void increment();
 
   void get(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
   void next(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
+  void data(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
 
   mxArray *getTime();
   mxArray *getTopic();

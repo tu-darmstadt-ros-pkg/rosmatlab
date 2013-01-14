@@ -38,11 +38,18 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   if (!methods.initialize()) {
     methods
     .add("addQuery",             &View::addQuery)
+
     .add("reset",                &View::reset)
-    .add("getSize",              &View::getSize)
+    .add("start",                &View::start)
+    .add("valid",                &View::valid)
     .add("eof",                  &View::eof)
+    .add("increment",            &View::increment)
+
     .add("get",                  &View::get)
+    .add("data",                 &View::data)
     .add("next",                 &View::next)
+
+    .add("getSize",              &View::getSize)
     .add("getTime",              &View::getTime)
     .add("getTopic",             &View::getTopic)
     .add("getDataType",          &View::getDataType)
@@ -51,6 +58,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     .add("getConnectionHeader",  &View::getConnectionHeader)
     .add("getCallerId",          &View::getCallerId)
     .add("isLatching",           &View::isLatching)
+
     .add("getQueries",           &View::getQueries)
     .add("getConnections",       &View::getConnections)
     .add("getBeginTime",         &View::getBeginTime)

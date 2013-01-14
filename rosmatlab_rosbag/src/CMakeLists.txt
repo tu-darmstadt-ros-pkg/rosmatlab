@@ -2,7 +2,7 @@
 ## Build ##
 ###########
 
-add_library(rosmatlab_rosbag SHARED bag.cpp view.cpp)
+add_library(rosmatlab_rosbag SHARED bag.cpp view.cpp query.cpp)
 target_link_libraries(rosmatlab_rosbag ${catkin_LIBRARIES})
 
 #############
