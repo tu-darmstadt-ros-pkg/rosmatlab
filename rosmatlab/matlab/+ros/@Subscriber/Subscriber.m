@@ -54,18 +54,9 @@ classdef Subscriber < handle
             result = internal(obj, 'subscribe', topic, datatype, varargin{:});
         end
 
-        function [message, connectionHeader, receiptTime] = poll(obj, varargin)
+        function [message, varargout] = poll(obj, varargin)
             nargoutchk(0, 3);
-            switch nargout
-                case 0
-                    message = internal(obj, 'poll', varargin{:});
-                case 1
-                    message = internal(obj, 'poll', varargin{:});
-                case 2
-                    [message, connectionHeader] = internal(obj, 'poll', varargin{:});
-                case 3
-                    [message, connectionHeader, receiptTime] = internal(obj, 'poll', varargin{:});
-            end
+            [message, varargout{1:nargout-1}] = internal(obj, 'poll', varargin{:});
             if (~isempty(message)); notify(obj, 'Callback', ros.MessageEvent(message, obj.Topic, obj.DataType, obj.MD5Sum)); end
         end
 

@@ -189,7 +189,6 @@ VoidConstPtr SubscriptionCallbackHelper::deserialize(const ros::SubscriptionCall
   VoidPtr msg = subscriber_->introspection_->deserialize(stream);
   if (!msg) ROSMATLAB_WARN("deserialization of a message of type %s failed", subscriber_->options_.datatype.c_str());
 
-  // TODO: setConnectionHeader
   return VoidConstPtr(msg);
 }
 
