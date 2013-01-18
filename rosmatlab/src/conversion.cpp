@@ -38,13 +38,30 @@
 
 #include <stdio.h>
 #include <ros/message_traits.h>
+#include <boost/algorithm/string.hpp>
 
 #include <mex.h>
 
 namespace rosmatlab {
 
-Conversion::Conversion(const MessagePtr &message) : message_(message), options_(defaultOptions()) {}
-Conversion::Conversion(const MessagePtr &message, const Options& options) : message_(message), options_(options) {}
+Conversion::Conversion(const MessagePtr &message) : message_(message), options_(defaultOptions())
+{
+  options_.merge(perMessageOptions(message));
+}
+
+Conversion::Conversion(const MessagePtr &message, const ConversionOptions& options) : message_(message), options_(defaultOptions())
+{
+  options_.merge(perMessageOptions(message));
+  options_.merge(options);
+}
+
+Conversion::Conversion(const Conversion &other, const MessagePtr &message)
+  : message_(message ? message : other.message_)
+  , options_(other.options_)
+{
+  options_.merge(perMessageOptions(message));
+}
+
 Conversion::~Conversion() {}
 
 Array Conversion::toMatlab() {
@@ -52,7 +69,16 @@ Array Conversion::toMatlab() {
 }
 
 Array Conversion::toMatlab(Array target, std::size_t index, std::size_t size) {
-  return toStruct(target, index, size);
+  switch(options_.conversionType()) {
+    case ConversionOptions::MATLAB_STRUCT:
+      return toStruct(target, index, size);
+    case ConversionOptions::MATLAB_MATRIX:
+      return toDoubleMatrix(target, index, size);
+    case ConversionOptions::MATLAB_EXTENDED_STRUCT:
+      return toExtendedStruct(target, index, size);
+  }
+
+  throw Exception("Unsupported conversion type " + boost::lexical_cast<std::string>(options_.conversionType()));
 }
 
 Array Conversion::toDoubleMatrix() {
@@ -60,7 +86,6 @@ Array Conversion::toDoubleMatrix() {
 }
 
 Array Conversion::toDoubleMatrix(Array target, std::size_t index, std::size_t size) {
-  std::size_t m = 0;
   if (!target) target = mxCreateDoubleMatrix(expanded()->size(), size > 0 ? size : index + 1, mxREAL);
 
   bool do_realloc = false;
@@ -73,7 +98,7 @@ Array Conversion::toDoubleMatrix(Array target, std::size_t index, std::size_t si
 
   double *data = mxGetPr(target) + mxGetM(target) * index;
   for(Message::const_iterator field = expanded()->begin(); field != expanded()->end(); ++field) {
-    if (!(*field)->getType()->isNumeric()) continue;
+    // if (!(*field)->getType()->isNumeric()) continue;
     *data++ = (*field)->getType()->as_double((*field)->get());
   }
   return target;
@@ -106,14 +131,14 @@ Array Conversion::toStruct(Array target, std::size_t index, std::size_t size) {
       MessagePtr field_message = messageByDataType((*field)->getDataType());
 
       if (field_message) {
-        Array child = mxCreateStructMatrix(1, (*field)->size(), field_message->getFieldNames().size(), const_cast<const char **>(field_message->getFieldNames().data()));
+        Array child = 0; /* mxCreateStructMatrix(1, (*field)->size(), field_message->getFieldNames().size(), const_cast<const char **>(field_message->getFieldNames().data())); */
 
         // iterate over array
         for(std::size_t j = 0; j < (*field)->size(); j++) {
 //          ROSMATLAB_PRINTF("Expanding field %s[%u] (%s)... %u", (*field)->getName(), j, (*field)->getDataType());
           MessagePtr expanded = (*field)->expand(j);
           if (expanded) {
-            Conversion(expanded).toStruct(child, j);
+            child = Conversion(expanded).toMatlab(child, j, (*field)->size());
           } else {
             ROSMATLAB_PRINTF("Error during expansion of %s[%u] (%s)... %u", (*field)->getName(), j, (*field)->getDataType());
           }
@@ -132,12 +157,92 @@ Array Conversion::toStruct(Array target, std::size_t index, std::size_t size) {
   }
 
   // add meta data to the struct
-  {
+  if (options_.addMetaData()) {
     if (mxGetFieldNumber(target, "DATATYPE") == -1) mxAddField(target, "DATATYPE");
     mxSetField(target, index, "DATATYPE", mxCreateString(message_->getDataType()));
     if (mxGetFieldNumber(target, "MD5SUM") == -1) mxAddField(target, "MD5SUM");
     mxSetField(target, index, "MD5SUM", mxCreateString(message_->getMD5Sum()));
   }
+
+  return target;
+}
+
+Array Conversion::toExtendedStruct() {
+  return toStruct(0);
+}
+
+Array Conversion::toExtendedStruct(Array target, std::size_t index, std::size_t size) {
+  static const char *fieldnames[] = { "count", "stamps", "data", "fields", "strings", "string_fields" /*, "arrays", "array_fields" */ };
+  if (!target) target = mxCreateStructMatrix(1, 1, sizeof(fieldnames)/sizeof(*fieldnames), fieldnames);
+
+  // set count
+  if (size == 0) size = index + 1;
+  mxSetField(target, 0, "count", mxCreateDoubleScalar(size));
+
+  // set stamps
+  mxArray *stamps = mxGetField(target, 0, "stamps");
+  if (message_->hasHeader()) {
+    if (!stamps) stamps = mxCreateDoubleMatrix(1, size, mxREAL);
+    *(mxGetPr(stamps) + index) = message_->getHeader(message_->getConstInstance())->stamp.toSec();
+    mxSetField(target, 0, "stamps", stamps);
+  }
+
+  // set data
+  mxArray *data = mxGetField(target, 0, "data");
+  data = toDoubleMatrix(data, index, size);
+  mxSetField(target, 0, "data", data);
+
+  // set fields
+  mxArray *fields = mxGetField(target, 0, "fields");
+  if (!fields) {
+    const V_FieldName& fieldnames = expanded()->getFieldNames();
+    fields = mxCreateCellMatrix(fieldnames.size(), 1);
+    for(int i = 0; i < fieldnames.size(); i++) {
+      mxSetCell(fields, i, mxCreateString(fieldnames.at(i)));
+    }
+    mxSetField(target, 0, "fields", fields);
+  }
+
+  // set strings
+  mxArray *strings = mxGetField(target, 0, "strings");
+  mxArray *string_fields = mxGetField(target, 0, "string_fields");
+
+  std::size_t string_count = 0;
+  for(Message::const_iterator field_it = expanded()->begin(); field_it != expanded()->end(); ++field_it) {
+    const FieldPtr& field = *field_it;
+    if (field->getType()->isString()) string_count++;
+  }
+
+  if (string_count > 0) {
+    if (!string_fields) {
+      string_fields = mxCreateCellMatrix(string_count, 1);
+      std::size_t string_index = 0;
+      for(Message::const_iterator field_it = expanded()->begin(); field_it != expanded()->end(); ++field_it, ++string_index) {
+        const FieldPtr& field = *field_it;
+        if (!field->getType()->isString()) continue;
+        mxSetCell(string_fields, string_index, mxCreateString(field->getName()));
+      }
+    }
+
+    if (!strings) {
+      strings = mxCreateCellMatrix(string_count, size);
+    } else if (mxGetM(strings) < string_count) {
+      throw Exception("string_fields cell has wrong size");
+    }
+
+    std::size_t string_index = 0;
+    for(Message::const_iterator field_it = expanded()->begin(); field_it != expanded()->end(); ++field_it, ++string_index) {
+      const FieldPtr& field = *field_it;
+      if (!field->getType()->isString()) continue;
+      mxSetCell(strings, index * string_count + string_index, mxCreateString(field->getType()->as_string(field->get(0)).c_str()));
+    }
+
+    mxSetField(target, 0, "strings", strings);
+    mxSetField(target, 0, "string_fields", string_fields);
+  }
+
+  // set arrays
+
 
   return target;
 }
@@ -149,7 +254,7 @@ std::size_t Conversion::numberOfInstances(ConstArray source)
   }
 
   if (mxIsDouble(source)) {
-    return mxGetM(source) == 1 ? mxGetN(source) : mxGetM(source);
+    return mxGetN(source);
   }
 
   if (mxIsChar(source)) {
@@ -368,9 +473,103 @@ const MessagePtr& Conversion::expanded() {
   return expanded_;
 }
 
-Options &Conversion::defaultOptions() {
-  static Options default_options_;
-  return default_options_;
+ConversionOptions &Conversion::defaultOptions() {
+  static boost::shared_ptr<ConversionOptions> default_options;
+  if (!default_options) {
+    default_options.reset(new ConversionOptions());
+  }
+  return *default_options;
+}
+
+std::map<const char *,ConversionOptions> Conversion::per_message_options_;
+ConversionOptions &Conversion::perMessageOptions(const MessagePtr &message) {
+  return per_message_options_[message->getDataType()];
+}
+
+ConversionOptions::ConversionOptions()
+{
+}
+
+ConversionOptions::ConversionOptions(int nrhs, const mxArray *prhs[])
+{
+  init(nrhs, prhs);
+}
+
+ConversionOptions::~ConversionOptions()
+{
+}
+
+void ConversionOptions::init(int nrhs, const mxArray *prhs[])
+{
+  Options::init(nrhs, prhs, true);
+
+  std::string type = getString("type");
+  if (!type.empty()) {
+    if (boost::algorithm::iequals(type, "struct"))
+      setConversionType(MATLAB_STRUCT);
+    else if (boost::algorithm::iequals(type, "matrix"))
+      setConversionType(MATLAB_MATRIX);
+    else if (boost::algorithm::iequals(type, "extended"))
+      setConversionType(MATLAB_EXTENDED_STRUCT);
+    else
+      throw Exception("unknown conversion type '" + type + "'");
+  }
+
+  if (conversionType() >= MATLAB_TYPE_MAX) {
+    throw Exception("illegal conversion type " + boost::lexical_cast<std::string>(conversionType()));
+  }
+}
+
+ConversionOptions::MatlabType ConversionOptions::conversionType() const
+{
+  return static_cast<ConversionOptions::MatlabType>(getInteger("type"));
+}
+
+std::string ConversionOptions::conversionTypeString() const
+{
+  switch(conversionType()) {
+    case MATLAB_STRUCT: return "struct";
+    case MATLAB_MATRIX: return "matrix";
+    case MATLAB_EXTENDED_STRUCT: return "extended";
+  }
+  return std::string();
+}
+
+ConversionOptions &ConversionOptions::setConversionType(ConversionOptions::MatlabType type)
+{
+  set("type", static_cast<int>(type));
+  return *this;
+}
+
+bool ConversionOptions::addMetaData() const
+{
+  return getBool("meta");
+}
+
+ConversionOptions &ConversionOptions::setAddMetaData(bool value)
+{
+  set("meta", value);
+  return *this;
+}
+
+bool ConversionOptions::addConnectionHeader() const
+{
+  return getBool("connectionheader");
+}
+
+ConversionOptions &ConversionOptions::setAddConnectionHeader(bool value)
+{
+  set("meta", value);
+  return *this;
+}
+
+mxArray *ConversionOptions::toMatlab() const {
+  const char *fieldnames[] = { "Type", "Meta", "ConnectionHeader" };
+  mxArray *result = mxCreateStructMatrix(1, 1, sizeof(fieldnames)/sizeof(*fieldnames), fieldnames);
+  mxSetField(result, 0, "Type", mxCreateString(conversionTypeString().c_str()));
+  mxSetField(result, 0, "Meta", mxCreateLogicalScalar(addMetaData()));
+  mxSetField(result, 0, "ConnectionHeader", mxCreateLogicalScalar(addConnectionHeader()));
+  return result;
 }
 
 }

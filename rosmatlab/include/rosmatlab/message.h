@@ -1,5 +1,5 @@
 //=================================================================================================
-// Copyright (c) 2012, Johannes Meyer, TU Darmstadt
+// Copyright (c) 2013, Johannes Meyer, TU Darmstadt
 // All rights reserved.
 
 // Redistribution and use in source and binary forms, with or without
@@ -26,31 +26,16 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //=================================================================================================
 
-#include <rosmatlab/message.h>
-#include <rosmatlab/exception.h>
-#include <introspection/package.h>
-#include <introspection/message.h>
+#ifndef ROSMATLAB_MESSAGE_H
+#define ROSMATLAB_MESSAGE_H
 
-#include <introspection/@package@/package.h>
-
+#include <introspection/forwards.h>
 #include <mex.h>
 
-// #include <@package@/@msg@.h>
-// typedef ::@package@::@msg@ MessageType;
+namespace rosmatlab {
 
-using namespace rosmatlab;
-using namespace cpp_introspection;
+mxArray *message_constructor(const cpp_introspection::MessagePtr& message, int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]);
 
-void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
-{
-  try {
-    PackagePtr package = cpp_introspection::@package@::Instance();
-    MessagePtr message = messageByDataType("@package@/@msg@");
-    if (!message) throw UnknownDataTypeException("@package@/@msg@");
+} // namespace rosmatlab
 
-    plhs[0] = message_constructor(message, nlhs, plhs, nrhs, prhs);
-
-  } catch(rosmatlab::Exception& e) {
-    mexErrMsgTxt(e.what());
-  }
-}
+#endif // ROSMATLAB_MESSAGE_H

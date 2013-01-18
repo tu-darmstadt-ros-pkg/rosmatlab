@@ -3,7 +3,7 @@ function setup()
     addpath('@CMAKE_INSTALL_PREFIX@/matlab');
 
     % Find packages that export a path for Matlab
-    [status, result] = system('rospack plugins --attrib=path rosmatlab');
+    [status, result] = system('rospack find rosmatlab');
     if status ~= 0
       error('Package rosmatlab was not found in the ROS_PACKAGE_PATH. Did you run ''source @CMAKE_INSTALL_PREFIX@/setup.bash'' before starting Matlab?');
     end

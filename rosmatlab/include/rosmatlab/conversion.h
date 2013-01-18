@@ -46,10 +46,32 @@ typedef boost::shared_ptr<Conversion> ConversionPtr;
 typedef mxArray *Array;
 typedef mxArray const *ConstArray;
 
+class ConversionOptions : public Options {
+public:
+  ConversionOptions();
+  ConversionOptions(int nrhs, const mxArray *prhs[]);
+  virtual ~ConversionOptions();
+
+  virtual void init(int nrhs, const mxArray *prhs[]);
+  virtual mxArray *toMatlab() const;
+
+  typedef enum { MATLAB_STRUCT, MATLAB_MATRIX, MATLAB_EXTENDED_STRUCT, MATLAB_TYPE_MAX } MatlabType;
+  MatlabType conversionType() const;
+  std::string conversionTypeString() const;
+  ConversionOptions &setConversionType(MatlabType type);
+
+  bool addMetaData() const;
+  ConversionOptions &setAddMetaData(bool value);
+
+  bool addConnectionHeader() const;
+  ConversionOptions &setAddConnectionHeader(bool value);
+};
+
 class Conversion {
 public:
   Conversion(const MessagePtr &message);
-  Conversion(const MessagePtr &message, const Options& options);
+  Conversion(const MessagePtr &message, const ConversionOptions& options);
+  Conversion(const Conversion &other, const MessagePtr &message = MessagePtr());
   virtual ~Conversion();
 
   operator void *() const { return reinterpret_cast<void *>(static_cast<bool>(message_)); }
@@ -62,6 +84,9 @@ public:
 
   virtual Array toStruct();
   virtual Array toStruct(Array target, std::size_t index = 0, std::size_t size = 0);
+
+  virtual Array toExtendedStruct();
+  virtual Array toExtendedStruct(Array target, std::size_t index = 0, std::size_t size = 0);
 
   virtual std::size_t numberOfInstances(ConstArray source);
   virtual MessagePtr fromMatlab(ConstArray source, std::size_t index = 0);
@@ -77,7 +102,8 @@ public:
   const Options &options() const { return options_; }
   Conversion &setOptions(int nrhs, const mxArray *prhs[]);
 
-  static Options &defaultOptions();
+  static ConversionOptions &defaultOptions();
+  static ConversionOptions &perMessageOptions(const MessagePtr& message);
 
 protected:
   Array emptyArray() const;
@@ -89,7 +115,8 @@ protected:
   MessagePtr message_;
   MessagePtr expanded_;
 
-  Options options_;
+  ConversionOptions options_;
+  static std::map<const char *,ConversionOptions> per_message_options_;
 };
 
 /*

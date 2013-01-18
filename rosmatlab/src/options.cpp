@@ -162,11 +162,34 @@ Options::~Options()
 
 void Options::init(int nrhs, const mxArray *prhs[], bool lowerCaseKeys)
 {
+  // initialize from struct
+  if (nrhs == 1 && mxIsStruct(prhs[0])) {
+    int n = mxGetNumberOfFields(prhs[0]);
+    for(int i = 0; i < n; ++i) {
+      std::string key = mxGetFieldNameByNumber(prhs[0], i);
+      if (lowerCaseKeys) boost::algorithm::to_lower(key);
+      set(key, mxGetFieldByNumber(prhs[0], 0, i));
+    }
+    return;
+  }
+
+  // initialize from cell
+  if (nrhs == 1 && mxIsCell(prhs[0])) {
+    std::vector<const mxArray *> cell(mxGetNumberOfElements(prhs[0]));
+    for(int i = 0; i < cell.size(); ++i) {
+      cell[i] = mxGetCell(prhs[0], i);
+    }
+    init(cell.size(), cell.data());
+    return;
+  }
+
+  // get default option
   if (nrhs % 2 != 0) {
     set(std::string(), *prhs);
     nrhs--; prhs++;
   }
 
+  // iterate through key/value pairs
   for(; nrhs > 0; nrhs -= 2, prhs += 2) {
     if (!isString(prhs[0])) continue;
     std::string key = getString(prhs[0]);
@@ -175,9 +198,57 @@ void Options::init(int nrhs, const mxArray *prhs[], bool lowerCaseKeys)
   }
 }
 
+void Options::merge(const Options& other)
+{
+  for(ArrayMap::const_iterator it = other.arrays_.begin(); it != other.arrays_.end(); ++it) {
+//    mexPrintf("merged array field %s\n", it->first.c_str());
+    arrays_[it->first] = it->second;
+    used_.erase(it->first);
+  }
+  for(StringMap::const_iterator it = other.strings_.begin(); it != other.strings_.end(); ++it) {
+//    mexPrintf("merged string field %s\n", it->first.c_str());
+    strings_[it->first] = it->second;
+    used_.erase(it->first);
+  }
+  for(DoubleMap::const_iterator it = other.doubles_.begin(); it != other.doubles_.end(); ++it) {
+//    mexPrintf("merged double field %s\n", it->first.c_str());
+    doubles_[it->first] = it->second;
+    used_.erase(it->first);
+  }
+  for(IntegerMap::const_iterator it = other.integers_.begin(); it != other.integers_.end(); ++it) {
+//    mexPrintf("merged integer field %s\n", it->first.c_str());
+    integers_[it->first] = it->second;
+    used_.erase(it->first);
+  }
+  for(BoolMap::const_iterator it = other.bools_.begin(); it != other.bools_.end(); ++it) {
+//    mexPrintf("merged bool field %s\n", it->first.c_str());
+    bools_[it->first] = it->second;
+    used_.erase(it->first);
+  }
+}
+
+void Options::clear()
+{
+  arrays_.clear();
+  strings_.clear();
+  doubles_.clear();
+  integers_.clear();
+  bools_.clear();
+  used_.clear();
+}
+
 bool Options::hasKey(const std::string& key) const
 {
-  return strings_.count(key) || doubles_.count(key) || bools_.count(key);
+  return arrays_.count(key) || strings_.count(key) || doubles_.count(key) || integers_.count(key) || bools_.count(key);
+}
+
+const mxArray *Options::getArray(const std::string &key) const
+{
+  if (arrays_.count(key)) {
+    used_.insert(key);
+    return arrays_.at(key);
+  }
+  return 0;
 }
 
 const std::string& Options::getString(const std::string& key, const std::string& default_value) const
@@ -219,6 +290,29 @@ const Options::Doubles& Options::getDoubles(const std::string &key) const
   return empty;
 }
 
+int Options::getInteger(const std::string& key, int default_value) const
+{
+  if (integers_.count(key) && integers_.at(key).size()) {
+    used_.insert(key);
+    return integers_.at(key).front();
+  }
+  if (doubles_.count(key) && doubles_.at(key).size()) {
+    used_.insert(key);
+    return doubles_.at(key).front();
+  }
+  return default_value;
+}
+
+const Options::Integers& Options::getIntegers(const std::string &key) const
+{
+  if (integers_.count(key)) {
+    used_.insert(key);
+    return integers_.at(key);
+  }
+  static const Integers empty;
+  return empty;
+}
+
 bool Options::getBool(const std::string& key, bool default_value) const
 {
   if (bools_.count(key)   && bools_.at(key).size())   {
@@ -255,6 +349,12 @@ Options &Options::set(const std::string& key, double value)
   return *this;
 }
 
+Options &Options::set(const std::string& key, int value)
+{
+  integers_[key] = Integers(1, value);
+  return *this;
+}
+
 Options &Options::set(const std::string& key, bool value)
 {
   bools_[key] = Bools(1, value);
@@ -273,6 +373,12 @@ Options &Options::add(const std::string& key, double value)
   return *this;
 }
 
+Options &Options::add(const std::string& key, int value)
+{
+  integers_[key].push_back(value);
+  return *this;
+}
+
 Options &Options::add(const std::string& key, bool value)
 {
   bools_[key].push_back(value);
@@ -281,8 +387,18 @@ Options &Options::add(const std::string& key, bool value)
 
 Options &Options::set(const std::string &key, const mxArray *value)
 {
-  if (isString(value))        add(key, getString(value));
+  arrays_[key] = value;
+
+  if (isString(value)) {
+    std::string str = getString(value);
+    add(key, str);
+
+    if (boost::algorithm::iequals(str, "on"))  add(key, true);
+    if (boost::algorithm::iequals(str, "off")) add(key, false);
+  }
+
   if (isDoubleScalar(value))  add(key, getDoubleScalar(value));
+  if (isIntegerScalar(value)) add(key, getIntegerScalar(value));
   if (isLogicalScalar(value)) add(key, getLogicalScalar(value));
 
   if (mxIsCell(value)) {
@@ -301,8 +417,14 @@ void Options::warnUnused() const
   for(DoubleMap::const_iterator it = doubles_.begin(); it != doubles_.end(); ++it) {
     if (!used_.count(it->first)) ROSMATLAB_PRINTF("WARNING: unused double argument '%s'", it->first.c_str());
   }
+  for(IntegerMap::const_iterator it = integers_.begin(); it != integers_.end(); ++it) {
+    if (!used_.count(it->first)) ROSMATLAB_PRINTF("WARNING: unused integer argument '%s'", it->first.c_str());
+  }
   for(BoolMap::const_iterator it = bools_.begin(); it != bools_.end(); ++it) {
     if (!used_.count(it->first)) ROSMATLAB_PRINTF("WARNING: unused logical argument '%s'", it->first.c_str());
+  }
+  for(ArrayMap::const_iterator it = arrays_.begin(); it != arrays_.end(); ++it) {
+    if (!used_.count(it->first)) ROSMATLAB_PRINTF("WARNING: unused argument '%s'", it->first.c_str());
   }
 }
 
@@ -314,8 +436,14 @@ void Options::throwOnUnused() const
   for(DoubleMap::const_iterator it = doubles_.begin(); it != doubles_.end(); ++it) {
     if (!used_.count(it->first)) throw Exception("unknown double argument '" + it->first + "'");
   }
+  for(IntegerMap::const_iterator it = integers_.begin(); it != integers_.end(); ++it) {
+    if (!used_.count(it->first)) throw Exception("unknown integer argument '" + it->first + "'");
+  }
   for(BoolMap::const_iterator it = bools_.begin(); it != bools_.end(); ++it) {
     if (!used_.count(it->first)) throw Exception("unknown logical argument '" + it->first + "'");
+  }
+  for(ArrayMap::const_iterator it = arrays_.begin(); it != arrays_.end(); ++it) {
+    if (!used_.count(it->first)) throw Exception("unknown argument '" + it->first + "'");
   }
 }
 

@@ -54,10 +54,14 @@ public:
   static bool getLogicalScalar(const mxArray *value);
 
 public:
+  typedef std::map<std::string, const mxArray *> ArrayMap;
+
   typedef std::vector<std::string> Strings;
   typedef std::map<std::string, Strings> StringMap;
   typedef std::vector<double> Doubles;
   typedef std::map<std::string, Doubles> DoubleMap;
+  typedef std::vector<int> Integers;
+  typedef std::map<std::string, Integers> IntegerMap;
   typedef std::vector<bool> Bools;
   typedef std::map<std::string, Bools> BoolMap;
 
@@ -66,23 +70,30 @@ public:
   Options(int nrhs, const mxArray *prhs[], bool lowerCaseKeys = false);
   virtual ~Options();
 
-  void init(int nrhs, const mxArray *prhs[], bool lowerCaseKeys = false);
+  virtual void init(int nrhs, const mxArray *prhs[], bool lowerCaseKeys = false);
+  void merge(const Options& options);
+  void clear();
 
   bool hasKey(const std::string& key) const;
+  const mxArray *getArray(const std::string& key) const;
 
   const std::string& getString(const std::string& key, const std::string& default_value = std::string()) const;
   const Strings& getStrings(const std::string& key) const;
   double getDouble(const std::string& key, double default_value = 0) const;
   const Doubles& getDoubles(const std::string& key) const;
+  int getInteger(const std::string& key, int default_value = 0) const;
+  const Integers& getIntegers(const std::string& key) const;
   bool getBool(const std::string& key, bool default_value = false) const;
   const Bools& getBools(const std::string& key) const;
 
   Options &add(const std::string& key, const std::string& value);
   Options &add(const std::string& key, double value);
+  Options &add(const std::string& key, int value);
   Options &add(const std::string& key, bool value);
 
   Options &set(const std::string& key, const std::string& value);
   Options &set(const std::string& key, double value);
+  Options &set(const std::string& key, int value);
   Options &set(const std::string& key, bool value);
 
   Options &set(const std::string &key, const mxArray *value);
@@ -90,13 +101,17 @@ public:
   void warnUnused() const;
   void throwOnUnused() const;
 
+  const ArrayMap& arrays() const { return arrays_; }
   const StringMap& strings() const { return strings_; }
   const DoubleMap& doubles() const { return doubles_; }
+  const IntegerMap& integers() const { return integers_; }
   const BoolMap& bools() const { return bools_; }
 
 private:
+  ArrayMap arrays_;
   StringMap strings_;
   DoubleMap doubles_;
+  IntegerMap integers_;
   BoolMap bools_;
 
   mutable std::set<std::string> used_;
