@@ -340,7 +340,7 @@ Array Conversion::convertToMatlab(const FieldPtr& field) {
 //  ROSMATLAB_PRINTF("Constructing field %s (%s)...", field->getName(), field->getDataType());
   try {
     if (field_type->isString()) {
-      if (field->isArray()) {
+      if (field->isArray() || field->isVector()) {
         target = mxCreateCellMatrix(1, field->size());
         for(std::size_t i = 0; i < field->size(); i++) {
           mxSetCell(target, i, mxCreateString(field_type->as_string(field->get(i)).c_str()));
