@@ -70,6 +70,8 @@ bool ConnectionHeader::fromMatlab(const mxArray *array)
       data_->insert(ros::StringPair(key, boost::lexical_cast<std::string>(Options::getLogicalScalar(value))));
     }
   }
+
+  return true;
 }
 
 mxArray *ConnectionHeader::toMatlab() const {
