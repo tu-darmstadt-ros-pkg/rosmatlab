@@ -26,7 +26,7 @@ classdef Publisher < handle
             obj.Topic    = internal(obj, 'getTopic');
             obj.DataType = internal(obj, 'getDataType');
             obj.MD5Sum   = internal(obj, 'getMD5Sum');
-            %obj.Latched  = internal(obj, 'isLatched'); % currently not implemented
+            obj.Latched  = internal(obj, 'isLatched');
         end
 
         function delete(obj)
@@ -36,6 +36,11 @@ classdef Publisher < handle
 
         function result = advertise(obj, topic, datatype, varargin)
             result = internal(obj, 'advertise', topic, datatype, varargin{:});
+
+            obj.Topic    = internal(obj, 'getTopic');
+            obj.DataType = internal(obj, 'getDataType');
+            obj.MD5Sum   = internal(obj, 'getMD5Sum');
+            obj.Latched  = internal(obj, 'isLatched');
         end
 
         function publish(obj, varargin)

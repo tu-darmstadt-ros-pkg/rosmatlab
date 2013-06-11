@@ -52,6 +52,9 @@ classdef Subscriber < handle
 
         function result = subscribe(obj, topic, datatype, varargin)
             result = internal(obj, 'subscribe', topic, datatype, varargin{:});
+            obj.Topic    = internal(obj, 'getTopic');
+            obj.DataType = internal(obj, 'getDataType');
+            obj.MD5Sum   = internal(obj, 'getMD5Sum');
         end
 
         function [message, varargout] = poll(obj, varargin)

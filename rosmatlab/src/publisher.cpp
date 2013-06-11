@@ -144,9 +144,7 @@ mxArray *Publisher::getNumSubscribers() const
 
 mxArray *Publisher::isLatched() const
 {
-  throw Exception("ros::Publisher::isLatched is currently not implemented in roscpp (see https://github.com/ros/ros_comm/pull/1)");
-//  return mxCreateLogicalScalar(ros::Publisher::isLatched());
-  return mxCreateLogicalScalar(false);
+  return mxCreateLogicalScalar(*this ? ros::Publisher::isLatched() : false);
 }
 
 } // namespace rosmatlab
