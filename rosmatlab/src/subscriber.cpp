@@ -154,13 +154,13 @@ mxArray *Subscriber::getTopic() const
 
 mxArray *Subscriber::getDataType() const
 {
-  if (!introspection_) return mxCreateString(0);
+  if (!introspection_) return mxCreateEmpty();
   return mxCreateString(introspection_->getDataType());
 }
 
 mxArray *Subscriber::getMD5Sum() const
 {
-  if (!introspection_) return mxCreateString(0);
+  if (!introspection_) return mxCreateEmpty();
   return mxCreateString(introspection_->getMD5Sum());
 }
 

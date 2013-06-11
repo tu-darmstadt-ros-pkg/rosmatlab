@@ -361,7 +361,7 @@ Array Conversion::convertToMatlab(const FieldPtr& field) {
 
   } catch(boost::bad_any_cast &e) {
     ROSMATLAB_PRINTF("Catched bad_any_cast exception for field %s: %s", field->getName(), e.what());
-    target = emptyArray();
+    target = mxCreateEmpty();
   }
 
   return target;
@@ -459,10 +459,6 @@ const double *Conversion::convertFromDouble(const FieldPtr& field, const double 
   }
 
   return data;
-}
-
-Array Conversion::emptyArray() const {
-  return mxCreateDoubleMatrix(0, 0, mxREAL);
 }
 
 const MessagePtr& Conversion::expanded() {

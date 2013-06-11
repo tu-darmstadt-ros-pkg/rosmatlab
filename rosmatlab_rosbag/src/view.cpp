@@ -253,31 +253,31 @@ void View::data(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
 mxArray *View::getTime()
 {
-  if (!valid()) return mxCreateDoubleMatrix(0, 0, mxREAL);
+  if (!valid()) return mxCreateEmpty();
   return mxCreateTime(current_->getTime());
 }
 
 mxArray *View::getTopic()
 {
-  if (!valid()) return mxCreateString(0);
+  if (!valid()) return mxCreateEmpty();
   return mxCreateString(current_->getTopic().c_str());
 }
 
 mxArray *View::getDataType()
 {
-  if (!valid()) return mxCreateString(0);
+  if (!valid()) return mxCreateEmpty();
   return mxCreateString(current_->getDataType().c_str());
 }
 
 mxArray *View::getMD5Sum()
 {
-  if (!valid()) return mxCreateString(0);
+  if (!valid()) return mxCreateEmpty();
   return mxCreateString(current_->getMD5Sum().c_str());
 }
 
 mxArray *View::getMessageDefinition()
 {
-  if (!valid()) return mxCreateString(0);
+  if (!valid()) return mxCreateEmpty();
   return mxCreateString(current_->getMessageDefinition().c_str());
 }
 
@@ -289,7 +289,7 @@ mxArray *View::getConnectionHeader()
 
 mxArray *View::getCallerId()
 {
-  if (!valid()) return mxCreateString(0);
+  if (!valid()) return mxCreateEmpty();
   return mxCreateString(current_->getCallerId().c_str());
 }
 

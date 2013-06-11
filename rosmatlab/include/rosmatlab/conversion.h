@@ -106,8 +106,6 @@ public:
   static ConversionOptions &perMessageOptions(const MessagePtr& message);
 
 protected:
-  Array emptyArray() const;
-
   virtual void fromDoubleMatrix(const MessagePtr &target, ConstArray source, std::size_t n = 0);
   virtual void fromDoubleMatrix(const MessagePtr &target, const double *begin, const double *end);
   virtual void fromStruct(const MessagePtr &target, ConstArray source, std::size_t index = 0);
@@ -136,6 +134,10 @@ static inline mxArray *mxCreateDuration(const Duration& duration) {
 
 static inline mxArray *mxCreateString(const std::string& string) {
   return ::mxCreateString(string.c_str());
+}
+
+static inline mxArray *mxCreateEmpty() {
+  return ::mxCreateDoubleMatrix(0, 0, mxREAL);
 }
 
 }

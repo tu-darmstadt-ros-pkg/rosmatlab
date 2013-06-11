@@ -127,13 +127,13 @@ mxArray *Publisher::getTopic() const
 
 mxArray *Publisher::getDataType() const
 {
-  if (!introspection_) return mxCreateString(0);
+  if (!introspection_) return mxCreateEmpty();
   return mxCreateString(introspection_->getDataType());
 }
 
 mxArray *Publisher::getMD5Sum() const
 {
-  if (!introspection_) return mxCreateString(0);
+  if (!introspection_) return mxCreateEmpty();
   return mxCreateString(introspection_->getMD5Sum());
 }
 
