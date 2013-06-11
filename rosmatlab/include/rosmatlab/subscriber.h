@@ -64,6 +64,7 @@ public:
 private:
   friend class SubscriptionCallbackHelper;
   typedef ros::MessageEvent<void> MessageEvent;
+  typedef boost::shared_ptr<MessageEvent> MessageEventPtr;
   void callback(const MessageEvent& event);
   MessagePtr introspect(const VoidConstPtr& msg);
 
@@ -74,8 +75,8 @@ private:
   ros::WallDuration timeout_;
 
   cpp_introspection::MessagePtr introspection_;
-  boost::shared_ptr<MessageEvent> new_event_;
-  boost::shared_ptr<MessageEvent> last_event_;
+  MessageEventPtr new_event_;
+  MessageEventPtr last_event_;
 };
 
 } // namespace rosmatlab

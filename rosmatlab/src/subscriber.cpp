@@ -174,7 +174,7 @@ MessagePtr Subscriber::introspect(const VoidConstPtr& msg) {
   return introspection_->introspect(msg.get());
 }
 
-void Subscriber::callback(const ros::MessageEvent<void>& event)
+void Subscriber::callback(const MessageEvent& event)
 {
   if (new_event_) {
     ROSMATLAB_WARN("missed a %s message on topic %s, polling is too slow...", options_.datatype.c_str(), options_.topic.c_str());
@@ -194,7 +194,7 @@ VoidConstPtr SubscriptionCallbackHelper::deserialize(const ros::SubscriptionCall
 
 void SubscriptionCallbackHelper::call(ros::SubscriptionCallbackHelperCallParams& params)
 {
-  ros::MessageEvent<void> event(params.event, boost::bind(&cpp_introspection::Message::createInstance, subscriber_->introspection_));
+  Subscriber::MessageEvent event(params.event, boost::bind(&cpp_introspection::Message::createInstance, subscriber_->introspection_));
   subscriber_->callback(event);
 }
 
