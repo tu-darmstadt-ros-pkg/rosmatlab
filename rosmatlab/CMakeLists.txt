@@ -16,7 +16,7 @@ find_package(catkin REQUIRED cpp_introspection roscpp)
 catkin_package(
   INCLUDE_DIRS ${${PROJECT_NAME}_INCLUDE_DIRS}
   LIBRARIES rosmatlab
-  DEPENDS cpp_introspection roscpp
+  CATKIN_DEPENDS cpp_introspection roscpp
   CFG_EXTRAS rosmatlab.cmake
 )
 include(${CATKIN_DEVEL_PREFIX}/share/${PROJECT_NAME}/cmake/rosmatlab.cmake)
@@ -32,4 +32,3 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/setup.m DESTINATION .)
 install(DIRECTORY matlab/ DESTINATION ${GLOBAL_MATLAB_DESTINATION})
 install(DIRECTORY include/ DESTINATION ${CATKIN_GLOBAL_INCLUDE_DESTINATION})
 install(DIRECTORY src/ DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/src)
-

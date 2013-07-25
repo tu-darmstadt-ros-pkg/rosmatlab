@@ -17,6 +17,6 @@ set(rosrtw_INCLUDE_DIRS
 find_package(catkin REQUIRED)
 catkin_package(
   INCLUDE_DIRS ${rosrtw_INCLUDE_DIRS}
-  DEPENDS rosmatlab
+  CATKIN_DEPENDS rosmatlab
   CFG_EXTRAS rosrtw.cmake
 )

@@ -47,7 +47,7 @@ find_package(catkin REQUIRED COMPONENTS rosbag rosmatlab)
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES rosmatlab_rosbag
-#  CATKIN_DEPENDS rosbag rosmatlab
+  CATKIN_DEPENDS rosbag rosmatlab
 #  DEPENDS system_lib
 )
 
