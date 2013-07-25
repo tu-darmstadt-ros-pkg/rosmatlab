@@ -18,6 +18,16 @@ include(MatlabMexMacro)
 find_package(cpp_introspection REQUIRED)
 include_directories(${cpp_introspection_INCLUDE_DIRS})
 
+# Set default MEX_OUTPUT_PATH
+if (NOT DEFINED MEX_OUTPUT_PATH)
+  if(ROSBUILD_init_called)
+    set(MEX_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/matlab)
+  else()
+    # mex files are private (prevents name clashes if CMAKE_LIBRARY_OUTPUT_DIRECTORY is set) and need to be installed
+    set(MEX_OUTPUT_PATH ${CMAKE_CURRENT_BINARY_DIR})
+  endif()
+endif()
+
 # Define add_mex macro
 include(CMakeParseArguments)
 function(add_mex lib)
@@ -54,13 +64,10 @@ function(add_mex lib)
     set(${lib}_DESTINATION "+${${lib}_PACKAGE}/${${lib}_DESTINATION}")
   endif()
 
-  if (NOT DEFINED MEX_OUTPUT_PATH)
-    # mex files are private (prevent name clashes if CMAKE_LIBRARY_OUTPUT_DIRECTORY is set)
-    set_target_properties(${lib} PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/${${lib}_DESTINATION}")
-  else()
-    set_target_properties(${lib} PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${MEX_OUTPUT_PATH}/${${lib}_DESTINATION}")
-  endif()
+  # Set output path
+  set_target_properties(${lib} PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${MEX_OUTPUT_PATH}/${${lib}_DESTINATION}")
 
+  # Install
   install(TARGETS ${lib} DESTINATION ${GLOBAL_MATLAB_DESTINATION}/${${lib}_DESTINATION})
 endfunction()
 
