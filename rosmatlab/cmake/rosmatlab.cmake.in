@@ -22,9 +22,8 @@ include_directories(${cpp_introspection_INCLUDE_DIRS})
 if (NOT DEFINED MEX_OUTPUT_PATH)
   if(ROSBUILD_init_called)
     set(MEX_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/matlab)
-  else()
-    # mex files are private (prevents name clashes if CMAKE_LIBRARY_OUTPUT_DIRECTORY is set) and need to be installed
-    set(MEX_OUTPUT_PATH ${CMAKE_CURRENT_BINARY_DIR})
+  elseif(catkin_FOUND)
+    set(MEX_OUTPUT_PATH ${CATKIN_DEVEL_PREFIX}/matlab)
   endif()
 endif()
 
@@ -65,7 +64,11 @@ function(add_mex lib)
   endif()
 
   # Set output path
-  set_target_properties(${lib} PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${MEX_OUTPUT_PATH}/${${lib}_DESTINATION}")
+  if(MEX_OUTPUT_PATH)
+    set_target_properties(${lib} PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${MEX_OUTPUT_PATH}/${${lib}_DESTINATION}")
+  else()
+    set_target_properties(${lib} PROPERTIES LIBRARY_OUTPUT_DIRECTORY "${${lib}_DESTINATION}")
+  endif()
 
   # Install
   install(TARGETS ${lib} DESTINATION ${GLOBAL_MATLAB_DESTINATION}/${${lib}_DESTINATION})

@@ -1,0 +1,18 @@
+#!/bin/bash
+
+export MATLAB_ROOT=@MATLAB_ROOT@
+export LD_LIBRARY_PATH=@CATKIN_DEVEL_PREFIX@/lib:$LD_LIBRARY_PATH
+
+PRELOAD_LIBS=(
+  /usr/lib/libstdc++.so.6
+  /usr/lib/`uname -m`-linux-gnu/libstdc++.so.6
+)
+
+for lib in ${PRELOAD_LIBS[@]}; do
+  if [ -f $lib ]; then
+    LD_PRELOAD="$LD_PRELOAD $lib"
+  fi
+done
+export LD_PRELOAD
+
+$MATLAB_ROOT/bin/matlab -r "run @CATKIN_DEVEL_PREFIX@/setup.m" "$@"

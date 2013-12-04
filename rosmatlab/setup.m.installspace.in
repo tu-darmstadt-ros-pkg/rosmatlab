@@ -29,8 +29,5 @@ function setup()
             end
         end
     end
-
-    % Load the package std_msgs
-    std_msgs
 end
 
