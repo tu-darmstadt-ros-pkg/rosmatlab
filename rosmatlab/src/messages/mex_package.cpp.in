@@ -29,10 +29,10 @@
 #include <rosmatlab/log.h>
 
 #include <introspection/introspection.h>
-#include "introspection/@package@/package.h"
+// #include "introspection/@package@/package.h"
 #include "mex.h"
 
-using namespace cpp_introspection;
+using cpp_introspection::PackagePtr;
 
 namespace rosmatlab {
 namespace messages {
@@ -48,7 +48,7 @@ namespace @package@ {
       return package;
     }
 
-    package = cpp_introspection::@package@::Instance();
+    package = cpp_introspection::loadPackage("@package@");
     ROSMATLAB_PRINTF("Loaded package @package@.");
 
     return package;

@@ -28,10 +28,11 @@
 
 #include <rosmatlab/message.h>
 #include <rosmatlab/exception.h>
+#include <introspection/introspection.h>
 #include <introspection/package.h>
 #include <introspection/message.h>
 
-#include <introspection/@package@/package.h>
+// #include <introspection/@package@/package.h>
 
 #include <mex.h>
 
@@ -39,13 +40,14 @@
 // typedef ::@package@::@msg@ MessageType;
 
 using namespace rosmatlab;
-using namespace cpp_introspection;
+using cpp_introspection::PackagePtr;
+using cpp_introspection::MessagePtr;
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
   try {
-    PackagePtr package = cpp_introspection::@package@::Instance();
-    MessagePtr message = messageByDataType("@package@/@msg@");
+    PackagePtr package = cpp_introspection::loadPackage("@package@");
+    MessagePtr message = cpp_introspection::messageByDataType("@package@/@msg@");
     if (!message) throw UnknownDataTypeException("@package@/@msg@");
 
     plhs[0] = message_constructor(message, nlhs, plhs, nrhs, prhs);
