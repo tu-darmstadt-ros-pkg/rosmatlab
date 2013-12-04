@@ -62,4 +62,4 @@ add_subdirectory(src)
 ## Install ##
 #############
 
-install(DIRECTORY matlab/ DESTINATION ${GLOBAL_MATLAB_DESTINATION})
+rosmatlab_install()

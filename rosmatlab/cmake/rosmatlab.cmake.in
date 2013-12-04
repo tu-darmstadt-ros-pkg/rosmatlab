@@ -81,3 +81,8 @@ function(add_mex_messages package)
     add_subdirectory("${rosmatlab_SOURCE_DIR}/src/messages" "${CMAKE_CURRENT_BINARY_DIR}/messages/${package}")
   endif()
 endfunction()
+
+function(rosmatlab_install)
+  file(COPY matlab/ DESTINATION ${CATKIN_DEVEL_PREFIX}/${GLOBAL_MATLAB_DESTINATION})
+  install(DIRECTORY matlab/ DESTINATION ${GLOBAL_MATLAB_DESTINATION})
+endfunction()
