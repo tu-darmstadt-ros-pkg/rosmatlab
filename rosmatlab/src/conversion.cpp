@@ -128,25 +128,26 @@ Array Conversion::toStruct(Array target, std::size_t index, std::size_t size) {
     const char *field_name = (*field)->getName();
 
     if ((*field)->isMessage()) {
-      MessagePtr field_message = messageByDataType((*field)->getDataType());
+      MessagePtr field_message = messageByDataType((*field)->getValueType());
 
       if (field_message) {
         Array child = 0; /* mxCreateStructMatrix(1, (*field)->size(), field_message->getFieldNames().size(), const_cast<const char **>(field_message->getFieldNames().data())); */
 
         // iterate over array
         for(std::size_t j = 0; j < (*field)->size(); j++) {
-//          ROSMATLAB_PRINTF("Expanding field %s[%u] (%s)... %u", (*field)->getName(), j, (*field)->getDataType());
+//          ROSMATLAB_PRINTF("Expanding field %s[%u] (%s)...", (*field)->getName(), j, (*field)->getDataType());
           MessagePtr expanded = (*field)->expand(j);
           if (expanded) {
             child = Conversion(expanded).toMatlab(child, j, (*field)->size());
           } else {
-            ROSMATLAB_PRINTF("Error during expansion of %s[%u] (%s)... %u", (*field)->getName(), j, (*field)->getDataType());
+            ROSMATLAB_PRINTF("Error during expansion of %s[%u] (%s)...", (*field)->getName(), j, (*field)->getDataType());
           }
         }
 
         mxSetField(target, index, field_name, child);
 
       } else {
+        ROSMATLAB_PRINTF("Error during conversion of field %s[%u] (%s): unknown datatype", (*field)->getName(), (*field)->size(), (*field)->getDataType());
         const char **field_names = { 0 };
         mxSetField(target, index, field_name, mxCreateStructMatrix(1, (*field)->size(), 0, field_names));
       }
@@ -378,7 +379,7 @@ void Conversion::convertFromMatlab(const FieldPtr &field, ConstArray source) {
 
   // parse ROS message
   if (field->isMessage()) {
-    MessagePtr field_message = messageByDataType(field->getDataType());
+    MessagePtr field_message = messageByDataType(field->getValueType());
     if (!field_message) throw Exception("Failed to parse field " + std::string(field_name) + ": unknown datatype " + field->getDataType());
     Conversion child_conversion(field_message);
 
