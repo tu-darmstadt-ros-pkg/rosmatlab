@@ -136,12 +136,12 @@ void log(Level level, const char *name, const char *fmt, ...)
   // ... and finally log the message!
   do {
     ROSCONSOLE_DEFINE_LOCATION(true, level, logger_name);
-    if (ROS_UNLIKELY(enabled))
+    if (ROS_UNLIKELY(__rosconsole_define_location__enabled))
     {
-      ::ros::console::print(0, loc.logger_, loc.level_, message, file.c_str(), line, function.c_str());
+      ::ros::console::print(0, __rosconsole_define_location__loc.logger_, __rosconsole_define_location__loc.level_, message, file.c_str(), line, function.c_str());
     }
 
-    if (enabled) {
+    if (__rosconsole_define_location__enabled) {
       static const std::string level_strings[] = { "Debug", "Info", "Warn", "Error", "Fatal" };
       std::stringstream output;
       output << "[" << level_strings[level] << "] [" << ros::WallTime::now() << "] " << message.str();
