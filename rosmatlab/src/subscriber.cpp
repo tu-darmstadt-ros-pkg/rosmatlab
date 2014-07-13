@@ -43,17 +43,19 @@ static const ros::WallDuration DEFAULT_TIMEOUT(1e-3);
 class SubscriptionCallbackHelper : public ros::SubscriptionCallbackHelper
 {
 public:
-  SubscriptionCallbackHelper(Subscriber *subscriber)
-    : subscriber_(subscriber) {}
+  SubscriptionCallbackHelper(Subscriber *subscriber, bool header)
+    : subscriber_(subscriber), header_(header) {}
   virtual ~SubscriptionCallbackHelper() {}
 
   VoidConstPtr deserialize(const ros::SubscriptionCallbackHelperDeserializeParams&);
   void call(ros::SubscriptionCallbackHelperCallParams& params);
   const std::type_info& getTypeInfo() { return subscriber_->introspection_->getTypeId(); }
   bool isConst() { return false; }
+  bool hasHeader() { return header_; }
 
 private:
   Subscriber *subscriber_;
+  bool header_;
 };
 
 Subscriber::Subscriber()
@@ -107,7 +109,7 @@ mxArray *Subscriber::subscribe(int nrhs, const mxArray *prhs[]) {
   introspection_ = cpp_introspection::messageByDataType(options_.datatype);
   if (!introspection_) throw Exception("Subscriber.subscribe", "unknown datatype '" + options_.datatype + "'");
   options_.md5sum = introspection_->getMD5Sum();
-  options_.helper.reset(new SubscriptionCallbackHelper(this));
+  options_.helper.reset(new SubscriptionCallbackHelper(this, introspection_->hasHeader()));
 
   *this = node_handle_.subscribe(options_);
   return mxCreateLogicalScalar(*this);
