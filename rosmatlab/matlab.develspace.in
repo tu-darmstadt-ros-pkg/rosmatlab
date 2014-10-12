@@ -3,6 +3,10 @@
 export MATLAB_ROOT=@MATLAB_ROOT@
 export LD_LIBRARY_PATH=@CATKIN_DEVEL_PREFIX@/lib:$LD_LIBRARY_PATH
 
+if [ -z "$ROS_PACKAGE_PATH" ]; then
+  . @CATKIN_DEVEL_PREFIX@/setup.sh
+fi
+
 PRELOAD_LIBS=(
   /usr/lib/libstdc++.so.6
   /usr/lib/`uname -m`-linux-gnu/libstdc++.so.6
