@@ -47,6 +47,10 @@ mxArray *message_constructor(const MessagePtr& message, int nlhs, mxArray *plhs[
   // parse inputs
   if (nrhs > 0 && Options::isString(prhs[0])) {
     std::string option = Options::getString(prhs[0]);
+    if (nrhs == 1 && boost::algorithm::iequals(option, "datatype")) {
+      result = mxCreateString(message->getDataType());
+      return result;
+    }
     if (nrhs == 1 && boost::algorithm::iequals(option, "definition")) {
       result = mxCreateString(message->getDefinition());
       return result;
