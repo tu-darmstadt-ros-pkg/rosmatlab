@@ -122,6 +122,8 @@ mxArray *Subscriber::poll(int nlhs, mxArray *plhs[], int nrhs, const mxArray *pr
   last_event_.reset();
   if (!new_event_) {
     plhs[0] = mxCreateStructMatrix(0,0,0,0);
+    if (nlhs > 1) plhs[1] = mxCreateStructMatrix(0,0,0,0);
+    if (nlhs > 2) plhs[2] = mxCreateDoubleScalar(0);
     return plhs[0];
   }
 
