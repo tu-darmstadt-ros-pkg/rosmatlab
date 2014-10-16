@@ -93,7 +93,7 @@ Array Conversion::toDoubleMatrix(Array target, std::size_t index, std::size_t si
   if (mxGetN(target) < index + 1) { mxSetN(target, index + 1); do_realloc = true; }
   if (do_realloc)
   {
-    mxSetData(target, mxRealloc(mxGetData(target), mxGetN(target) * mxGetN(target) * sizeof(double)));
+    mxSetData(target, mxRealloc(mxGetData(target), mxGetN(target) * mxGetM(target) * sizeof(double)));
   }
 
   double *data = mxGetPr(target) + mxGetM(target) * index;
